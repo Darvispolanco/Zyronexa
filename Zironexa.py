@@ -599,8 +599,12 @@ if __name__ == "__main__":
 
     crear_base_datos()
 
+    # Detectar si estamos en producción (Render o similar)
+    debug_mode = os.getenv("FLASK_DEBUG", "False") == "True"
+    port = int(os.getenv("PORT", 5000))
+    
     app.run(
         host="0.0.0.0",
-        port=5000,
-        debug=True
+        port=port,
+        debug=debug_mode
     )
