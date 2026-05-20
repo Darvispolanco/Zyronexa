@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zyronexa - Autofinanciamiento</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-container">
+            <h1>Zyronexa</h1>
+            <p class="subtitle">Aplicación de Autofinanciamiento</p>
+            
+            <div class="form-container">
+                <div class="form-tabs">
+                    <button class="tab-btn active" onclick="mostrarLogin()">Login</button>
+                    <button class="tab-btn" onclick="mostrarRegistro()">Registro</button>
+                </div>
+                
+                <!-- FORMULARIO LOGIN -->
+                <div id="loginForm" class="form active">
+                    <h2>Iniciar Sesión</h2>
+                    <form onsubmit="login(event)">
+                        <div class="form-group">
+                            <label for="phone-login">Teléfono</label>
+                            <input type="tel" id="phone-login" placeholder="Ingresa tu teléfono" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password-login">Contraseña</label>
+                            <input type="password" id="password-login" placeholder="Ingresa tu contraseña" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Iniciar Sesión</button>
+                        <div id="login-message" class="message"></div>
+                    </form>
+                </div>
+                
+                <!-- FORMULARIO REGISTRO -->
+                <div id="registroForm" class="form">
+                    <h2>Crear Cuenta</h2>
+                    <form onsubmit="registro(event)">
+                        <div class="form-group">
+                            <label for="nombre">Nombre</label>
+                            <input type="text" id="nombre" placeholder="Ingresa tu nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone-registro">Teléfono</label>
+                            <input type="tel" id="phone-registro" placeholder="Ingresa tu teléfono" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password-registro">Contraseña</label>
+                            <input type="password" id="password-registro" placeholder="Crea una contraseña" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="banco">Banco</label>
+                            <input type="text" id="banco" placeholder="Nombre de tu banco" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Crear Cuenta</button>
+                        <div id="registro-message" class="message"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

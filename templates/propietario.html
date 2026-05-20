@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Propietario - Zyronexa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard">
+            <div class="sidebar">
+                <h1>Zyronexa</h1>
+                <nav>
+                    <a href="#" class="nav-item active">Panel Admin</a>
+                    <a href="#" class="nav-item" onclick="logout()">Cerrar Sesión</a>
+                </nav>
+            </div>
+            
+            <div class="main-content">
+                <h2>Panel de Propietario</h2>
+                <div class="admin-panel">
+                    <div class="admin-card">
+                        <h3>Gestión General</h3>
+                        <p>Bienvenido al panel de administración de Zyronexa.</p>
+                        <button class="btn-primary">Ver Estadísticas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

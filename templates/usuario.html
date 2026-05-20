@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Cuenta - Zyronexa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard">
+            <div class="sidebar">
+                <h1>Zyronexa</h1>
+                <nav>
+                    <a href="#" class="nav-item active" onclick="mostrarSeccion('perfil')">Perfil</a>
+                    <a href="#" class="nav-item" onclick="mostrarSeccion('productos')">Productos</a>
+                    <a href="#" class="nav-item" onclick="mostrarSeccion('historial')">Historial</a>
+                    <a href="#" class="nav-item" onclick="logout()">Cerrar Sesión</a>
+                </nav>
+            </div>
+            
+            <div class="main-content">
+                <!-- PERFIL -->
+                <div id="perfil" class="seccion active">
+                    <h2>Mi Perfil</h2>
+                    <div class="profile-card">
+                        <div class="profile-info">
+                            <p><strong>Nombre:</strong> <span id="nombre">{{ usuario['nombre'] }}</span></p>
+                            <p><strong>Teléfono:</strong> <span id="telefono">{{ usuario['telefono'] }}</span></p>
+                            <p><strong>Banco:</strong> <span id="banco">{{ usuario['banco'] }}</span></p>
+                            <p><strong>Fecha de Registro:</strong> <span>{{ usuario['fecha_registro'] }}</span></p>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-box">
+                                <h3>Saldo</h3>
+                                <p class="amount">₡{{ usuario['saldo'] }}</p>
+                            </div>
+                            <div class="stat-box">
+                                <h3>Total Generado</h3>
+                                <p class="amount">₡{{ usuario['total_generado'] }}</p>
+                            </div>
+                            <div class="stat-box">
+                                <h3>Ganancia Diaria</h3>
+                                <p class="amount">₡{{ usuario['ganancia_diaria'] }}</p>
+                            </div>
+                            <div class="stat-box">
+                                <h3>Total Retirado</h3>
+                                <p class="amount">₡{{ usuario['total_retirado'] }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="edit-profile">
+                        <h3>Editar Perfil</h3>
+                        <form onsubmit="actualizarPerfil(event)">
+                            <div class="form-group">
+                                <label for="edit-nombre">Nombre</label>
+                                <input type="text" id="edit-nombre" value="{{ usuario['nombre'] }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-banco">Banco</label>
+                                <input type="text" id="edit-banco" value="{{ usuario['banco'] }}" required>
+                            </div>
+                            <button type="submit" class="btn-primary">Guardar Cambios</button>
+                            <div id="perfil-message" class="message"></div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- PRODUCTOS -->
+                <div id="productos" class="seccion">
+                    <h2>Nuestros Productos</h2>
+                    <div class="productos-grid">
+                        <div class="producto-card" onclick="comprarProducto(1)">
+                            <h3>Plan Básico</h3>
+                            <p class="precio">₡500</p>
+                            <p class="ganancia">Ganancia diaria: ₡20</p>
+                            <button class="btn-primary">Comprar</button>
+                        </div>
+                        <div class="producto-card" onclick="comprarProducto(2)">
+                            <h3>Plan Estándar</h3>
+                            <p class="precio">₡1,000</p>
+                            <p class="ganancia">Ganancia diaria: ₡40</p>
+                            <button class="btn-primary">Comprar</button>
+                        </div>
+                        <div class="producto-card" onclick="comprarProducto(3)">
+                            <h3>Plan Plus</h3>
+                            <p class="precio">₡1,500</p>
+                            <p class="ganancia">Ganancia diaria: ₡60</p>
+                            <button class="btn-primary">Comprar</button>
+                        </div>
+                        <div class="producto-card" onclick="comprarProducto(4)">
+                            <h3>Plan Pro</h3>
+                            <p class="precio">₡2,000</p>
+                            <p class="ganancia">Ganancia diaria: ₡80</p>
+                            <button class="btn-primary">Comprar</button>
+                        </div>
+                        <div class="producto-card" onclick="comprarProducto(5)">
+                            <h3>Plan Premium</h3>
+                            <p class="precio">₡3,000</p>
+                            <p class="ganancia">Ganancia diaria: ₡120</p>
+                            <button class="btn-primary">Comprar</button>
+                        </div>
+                        <div class="producto-card" onclick="comprarProducto(6)">
+                            <h3>Plan Elite</h3>
+                            <p class="precio">₡5,000</p>
+                            <p class="ganancia">Ganancia diaria: ₡200</p>
+                            <button class="btn-primary">Comprar</button>
+                        </div>
+                        <div class="producto-card" onclick="comprarProducto(7)">
+                            <h3>Plan Platinum</h3>
+                            <p class="precio">₡10,000</p>
+                            <p class="ganancia">Ganancia diaria: ₡400</p>
+                            <button class="btn-primary">Comprar</button>
+                        </div>
+                        <div class="producto-card" onclick="comprarProducto(8)">
+                            <h3>Plan Diamante</h3>
+                            <p class="precio">₡20,000</p>
+                            <p class="ganancia">Ganancia diaria: ₡800</p>
+                            <button class="btn-primary">Comprar</button>
+                        </div>
+                    </div>
+                    <div id="producto-message" class="message"></div>
+                </div>
+                
+                <!-- HISTORIAL -->
+                <div id="historial" class="seccion">
+                    <h2>Historial de Transacciones</h2>
+                    <div class="historial-container">
+                        <p>Tu historial aparecerá aquí.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function mostrarSeccion(seccion) {
+            document.querySelectorAll('.seccion').forEach(s => s.classList.remove('active'));
+            document.getElementById(seccion).classList.add('active');
+        }
+    </script>
+</body>
+</html>
