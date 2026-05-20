@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Zyronexa Usuario</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Poppins',sans-serif;
+    background:#0f172a;
+    color:white;
+    overflow-x:hidden;
+}
+
+/* Fondo */
+
+body::before{
+    content:'';
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:
+    radial-gradient(circle at top,#991b1b,#0f172a);
+    z-index:-1;
+}
+
+/* HEADER */
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px;
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.logo{
+    font-size:30px;
+    font-weight:700;
+    color:#facc15;
+}
+
+.user-box{
+    text-align:right;
+}
+
+.user-name{
+    font-size:16px;
+    opacity:0.8;
+}
+
+.saldo{
+    color:#22c55e;
+    font-size:22px;
+    font-weight:bold;
+}
+
+/* CONTENIDO */
+
+.container{
+    width:95%;
+    max-width:1300px;
+    margin:auto;
+    padding:20px;
+}
+
+/* CARDS */
+
+.card{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    backdrop-filter:blur(10px);
+    border-radius:25px;
+    padding:25px;
+    margin-top:25px;
+    box-shadow:0 0 20px rgba(0,0,0,0.2);
+}
+
+.card h2{
+    margin-bottom:20px;
+    color:#facc15;
+}
+
+/* PRODUCTOS */
+
+.product-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:20px;
+}
+
+.producto{
+    background:#111827;
+    border-radius:20px;
+    padding:20px;
+    transition:0.3s;
+}
+
+.producto:hover{
+    transform:translateY(-5px);
+}
+
+.producto h3{
+    color:#dc2626;
+    margin-bottom:15px;
+}
+
+.producto p{
+    margin-top:8px;
+    opacity:0.9;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:15px;
+    background:#dc2626;
+    color:white;
+    font-size:15px;
+    margin-top:15px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#b91c1c;
+    transform:scale(1.02);
+}
+
+/* HISTORIAL */
+
+.historial-item{
+    background:#111827;
+    padding:15px;
+    border-radius:15px;
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+/* PERFIL */
+
+.perfil p{
+    margin-top:10px;
+    opacity:0.9;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:700px){
+
+    header{
+        flex-direction:column;
+        gap:10px;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<div class="logo">
+Zyronexa
+</div>
+
+<div class="user-box">
+
+<div class="user-name">
+{{ usuario["nombre"] }}
+</div>
+
+<div class="saldo">
+💰 {{ usuario["saldo"] }} NIO
+</div>
+
+</div>
+
+</header>
+
+<div class="container">
+
+<!-- ACERCA -->
+
+<div class="card">
+
+<h2>Acerca de</h2>
+
+<p>
+Zyronexa es una plataforma financiera digital moderna diseñada para administrar productos financieros,
+billetera virtual y crecimiento inteligente de inversiones.
+</p>
+
+</div>
+
+<!-- PRODUCTOS -->
+
+<div class="card">
+
+<h2>Productos de Inversion</h2>
+
+<div class="product-grid">
+
+<div class="producto">
+<h3>Producto 1</h3>
+<p>Inversion: 500 NIO</p>
+<p>Ganancia diaria: 20 NIO</p>
+<button onclick="comprarProducto(1)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 2</h3>
+<p>Inversion: 1000 NIO</p>
+<p>Ganancia diaria: 40 NIO</p>
+<button onclick="comprarProducto(2)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 3</h3>
+<p>Inversion: 1500 NIO</p>
+<p>Ganancia diaria: 60 NIO</p>
+<button onclick="comprarProducto(3)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 4</h3>
+<p>Inversion: 2000 NIO</p>
+<p>Ganancia diaria: 80 NIO</p>
+<button onclick="comprarProducto(4)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 5</h3>
+<p>Inversion: 3000 NIO</p>
+<p>Ganancia diaria: 120 NIO</p>
+<button onclick="comprarProducto(5)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 6</h3>
+<p>Inversion: 5000 NIO</p>
+<p>Ganancia diaria: 200 NIO</p>
+<button onclick="comprarProducto(6)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 7</h3>
+<p>Inversion: 10000 NIO</p>
+<p>Ganancia diaria: 400 NIO</p>
+<button onclick="comprarProducto(7)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 8</h3>
+<p>Inversion: 20000 NIO</p>
+<p>Ganancia diaria: 800 NIO</p>
+<button onclick="comprarProducto(8)">
+Comprar
+</button>
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Producto Activo</h2>
+
+{% if usuario["producto_activo"] == 0 %}
+
+<p>No tienes productos activos.</p>
+
+{% else %}
+
+<p>
+Producto #{{ usuario["producto_activo"] }}
+</p>
+
+<p>
+Valor del producto:
+{{ usuario["valor_producto"] }} NIO
+</p>
+
+<p>
+Ganancia diaria:
+{{ usuario["ganancia_diaria"] }} NIO
+</p>
+
+<p>
+Total generado:
+{{ usuario["total_generado"] }} NIO
+</p>
+
+{% endif %}
+
+</div>
+
+<!-- BILLETERA -->
+
+<div class="card">
+
+<h2>Billetera</h2>
+
+<div class="historial-item">
+<span>Saldo actual</span>
+<span>{{ usuario["saldo"] }} NIO</span>
+</div>
+
+<div class="historial-item">
+<span>Ganancias acumuladas</span>
+<span>{{ usuario["ganancias"] }} NIO</span>
+</div>
+
+<div class="historial-item">
+<span>Total retirado</span>
+<span>{{ usuario["total_retirado"] }} NIO</span>
+</div>
+
+</div>
+
+<!-- HISTORIAL -->
+
+<div class="card">
+
+<h2>Historial</h2>
+
+<div id="historialContainer">
+
+<div class="historial">
++{{ usuario["ganancia_diaria"] }} NIO diarios
+</div>
+
+</div>
+
+</div>
+
+<!-- PERFIL -->
+
+<div class="card perfil">
+
+<h2>Perfil</h2>
+
+<p>Usuario: {{ usuario["nombre"] }}</p>
+
+<p>Telefono: {{ usuario["telefono"] }}</p>
+
+<p>Cuenta LAFISE: {{ usuario["banco"] }}</p>
+
+<p>Estado: Activo</p>
+
+</div>
+
+</div>
+
+<script>
+
+async function comprarProducto(id){
+
+    alert("Producto " + id + " comprado correctamente");
+
+}
+
+</script>
+<script>
+
+async function comprarProducto(id){
+
+    const respuesta = await fetch(
+        "/comprar_producto",
+        {
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+                producto_id:id
+            })
+
+        }
+    );
+
+    const resultado = await respuesta.json();
+
+    alert(
+        resultado.mensaje || resultado.error
+    );
+
+    if(resultado.mensaje){
+        location.reload();
+    }
+
+}
+
+</script>
+</body>
+
+</html>
