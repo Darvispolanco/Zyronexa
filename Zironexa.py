@@ -4,10 +4,20 @@ from datetime import datetime
 import sqlite3
 import os
 
-app = Flask(__name__)
+# Configuración de rutas
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+STATIC_DIR = os.path.join(BASE_DIR, 'static')
+
+# Inicializar Flask con rutas explícitas
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
 app.secret_key = "zyronexa_super_key"
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_NAME = os.path.join(BASE_DIR, "zironexa.db")
 
 PROPIETARIO_TELEFONO = "84907210"
