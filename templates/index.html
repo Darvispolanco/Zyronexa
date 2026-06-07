@@ -1,68 +1,485 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zyronexa - Autofinanciamiento</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Zyronexa</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Poppins',sans-serif;
+    background:#0f172a;
+    color:white;
+    overflow-x:hidden;
+}
+
+/* Fondo */
+
+body::before{
+    content:'';
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:
+    radial-gradient(circle at top,#991b1b,#0f172a);
+    z-index:-1;
+}
+
+/* Header */
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px;
+}
+
+.logo{
+    font-size:32px;
+    font-weight:700;
+    color:#facc15;
+}
+
+/* Hero */
+
+.hero{
+    text-align:center;
+    padding:60px 20px;
+}
+
+.hero h1{
+    font-size:50px;
+    margin-bottom:20px;
+}
+
+.hero span{
+    color:#dc2626;
+}
+
+.hero p{
+    max-width:700px;
+    margin:auto;
+    opacity:0.8;
+    line-height:1.7;
+}
+
+/* Caja principal */
+
+.auth-box{
+    width:90%;
+    max-width:430px;
+    margin:40px auto;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    backdrop-filter:blur(12px);
+    border-radius:25px;
+    padding:30px;
+    box-shadow:0 0 30px rgba(0,0,0,0.3);
+}
+
+.auth-box h2{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+/* Tabs */
+
+.tabs{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.tab-btn{
+    flex:1;
+    background:#111827;
+}
+
+.tab-btn.active{
+    background:#dc2626;
+}
+
+input{
+    width:100%;
+    padding:15px;
+    margin-top:15px;
+    border:none;
+    border-radius:15px;
+    background:#111827;
+    color:white;
+    font-size:15px;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    margin-top:20px;
+    border:none;
+    border-radius:15px;
+    background:#dc2626;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    transform:scale(1.03);
+    background:#b91c1c;
+}
+
+/* Beneficios */
+
+.features{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+    padding:40px;
+}
+
+.card{
+    background:#111827;
+    padding:25px;
+    border-radius:20px;
+    transition:0.3s;
+}
+
+.card:hover{
+    transform:translateY(-5px);
+}
+
+.card h3{
+    margin-bottom:15px;
+    color:#facc15;
+}
+
+/* Productos */
+
+.productos{
+    padding:40px;
+}
+
+.productos h2{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.product-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+}
+
+.producto{
+    background:#111827;
+    padding:25px;
+    border-radius:20px;
+    text-align:center;
+}
+
+.producto h3{
+    color:#dc2626;
+    margin-bottom:10px;
+}
+
+/* Footer */
+
+footer{
+    text-align:center;
+    padding:30px;
+    opacity:0.7;
+}
+
+</style>
+
 </head>
+
+<script>
+
+function mostrarRegistro(){
+
+    document.getElementById("inicioBox").style.display = "none";
+
+    document.getElementById("registroBox").style.display = "block";
+
+    document.getElementById("loginBox").style.display = "none";
+
+}
+
+function mostrarLogin(){
+
+    document.getElementById("inicioBox").style.display = "none";
+
+    document.getElementById("registroBox").style.display = "none";
+
+    document.getElementById("loginBox").style.display = "block";
+
+}
+
+function volverInicio(){
+
+    document.getElementById("inicioBox").style.display = "block";
+
+    document.getElementById("registroBox").style.display = "none";
+
+    document.getElementById("loginBox").style.display = "none";
+
+}
+
+async function registrar(){
+
+    const datos = {
+
+        nombre: document.getElementById("nombre").value,
+
+        telefono: document.getElementById("telefono").value,
+
+        password: document.getElementById("password").value,
+
+        banco: document.getElementById("banco").value
+
+    };
+
+    const respuesta = await fetch("/registro", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(datos)
+
+    });
+
+    const resultado = await respuesta.json();
+
+    alert(resultado.mensaje || resultado.error);
+
+    if(resultado.ir_a){
+
+        window.location.href = resultado.ir_a;
+
+    }
+
+}
+
+async function iniciarSesion(){
+
+    const datos = {
+
+        telefono: document.getElementById("loginTelefono").value,
+
+        password: document.getElementById("loginPassword").value
+
+    };
+
+    const respuesta = await fetch("/login", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(datos)
+
+    });
+
+    const resultado = await respuesta.json();
+
+    alert(resultado.mensaje || resultado.error);
+
+    if(resultado.ir_a){
+
+        window.location.href = resultado.ir_a;
+
+    }
+
+}
+
+</script>
+
 <body>
-    <div class="container">
-        <div class="auth-container">
-            <h1>Zyronexa</h1>
-            <p class="subtitle">Aplicación de Autofinanciamiento</p>
-            
-            <div class="form-container">
-                <div class="form-tabs">
-                    <button class="tab-btn active" onclick="mostrarLogin()">Login</button>
-                    <button class="tab-btn" onclick="mostrarRegistro()">Registro</button>
-                </div>
-                
-                <!-- FORMULARIO LOGIN -->
-                <div id="loginForm" class="form active">
-                    <h2>Iniciar Sesión</h2>
-                    <form onsubmit="login(event)">
-                        <div class="form-group">
-                            <label for="phone-login">Teléfono</label>
-                            <input type="tel" id="phone-login" placeholder="Ingresa tu teléfono" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password-login">Contraseña</label>
-                            <input type="password" id="password-login" placeholder="Ingresa tu contraseña" required>
-                        </div>
-                        <button type="submit" class="btn-primary">Iniciar Sesión</button>
-                        <div id="login-message" class="message"></div>
-                    </form>
-                </div>
-                
-                <!-- FORMULARIO REGISTRO -->
-                <div id="registroForm" class="form">
-                    <h2>Crear Cuenta</h2>
-                    <form onsubmit="registro(event)">
-                        <div class="form-group">
-                            <label for="nombre">Nombre</label>
-                            <input type="text" id="nombre" placeholder="Ingresa tu nombre" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="phone-registro">Teléfono</label>
-                            <input type="tel" id="phone-registro" placeholder="Ingresa tu teléfono" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password-registro">Contraseña</label>
-                            <input type="password" id="password-registro" placeholder="Crea una contraseña" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="banco">Banco</label>
-                            <input type="text" id="banco" placeholder="Nombre de tu banco" required>
-                        </div>
-                        <button type="submit" class="btn-primary">Crear Cuenta</button>
-                        <div id="registro-message" class="message"></div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+<header>
+
+<div class="logo">
+Zyronexa
+</div>
+
+</header>
+
+<section class="hero">
+
+<h1>
+El futuro del <span>crecimiento financiero</span>
+</h1>
+
+<p>
+Invierte, administra y controla tus productos financieros
+de manera moderna y segura desde cualquier dispositivo.
+</p>
+
+</section>
+
+<div class="auth-box">
+
+<div class="tabs">
+
+<button class="tab-btn active" onclick="mostrarTab('registro')">
+Registro
+</button>
+
+
+</div>
+
+<!-- REGISTRO -->
+<div class="auth-box" id="inicioBox">
+
+<h2>Bienvenido a Zyronexa</h2>
+
+<p style="text-align:center; opacity:0.8;">
+Accede o crea una cuenta para comenzar.
+</p>
+
+<button onclick="mostrarRegistro()">
+Crear Cuenta
+</button>
+
+<button onclick="mostrarLogin()">
+Iniciar Sesion
+</button>
+
+</div>
+
+<!-- REGISTRO -->
+
+<div class="auth-box" id="registroBox" style="display:none;">
+
+<h2>Crear Cuenta</h2>
+
+<input type="text" id="nombre" placeholder="Nombre completo">
+
+<input type="text" id="telefono" placeholder="Numero de telefono">
+
+<input type="password" id="password" placeholder="Contrasena">
+
+<input type="text" id="banco" placeholder="Cuenta LAFISE">
+
+<button onclick="registrar()">
+Registrarse y recibir 500 NIO
+</button>
+
+<button onclick="volverInicio()">
+Volver
+</button>
+
+</div>
+
+<!-- LOGIN -->
+
+<div class="auth-box" id="loginBox" style="display:none;">
+
+<h2>Iniciar Sesion</h2>
+
+<input
+type="text"
+id="loginTelefono"
+placeholder="Numero de telefono registrado">
+
+<input
+type="password"
+id="loginPassword"
+placeholder="Contrasena">
+
+<button onclick="iniciarSesion()">
+Entrar
+</button>
+
+<button onclick="volverInicio()">
+Volver
+</button>
+
+</div>
+
+<section class="features">
+
+<div class="card">
+<h3>Seguridad</h3>
+<p>Proteccion avanzada para usuarios y billeteras.</p>
+</div>
+
+<div class="card">
+<h3>Ganancias</h3>
+<p>Productos financieros con crecimiento diario.</p>
+</div>
+
+<div class="card">
+<h3>Billetera LAFISE</h3>
+<p>Administra saldo, depositos y retiros.</p>
+</div>
+
+</section>
+
+<section class="productos">
+
+<h2>Productos Destacados</h2>
+
+<div class="product-grid">
+
+<div class="producto">
+<h3>Plan Basico</h3>
+<p>500 NIO</p>
+<p>+20 diarios</p>
+</div>
+
+<div class="producto">
+<h3>Plan Premium</h3>
+<p>1000 NIO</p>
+<p>+40 diarios</p>
+</div>
+
+<div class="producto">
+<h3>Plan Elite</h3>
+<p>1500 NIO</p>
+<p>+60 diarios</p>
+</div>
+
+</div>
+
+</section>
+
+<footer>
+
+© Zyronexa 2026
+
+</footer>
+
+<script>
+
+function mostrarTab(tab){
+
+    document.getElementById("registro").style.display = "none";
+    document.getElementById("login").style.display = "none";
+
+    document.getElementById(tab).style.display = "block";
+
+}
+
+</script>
 </body>
+
 </html>

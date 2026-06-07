@@ -1,145 +1,577 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Cuenta - Zyronexa</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Zyronexa Usuario</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Poppins',sans-serif;
+    background:#0f172a;
+    color:white;
+    overflow-x:hidden;
+}
+
+/* Fondo */
+
+body::before{
+    content:'';
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:
+    radial-gradient(circle at top,#991b1b,#0f172a);
+    z-index:-1;
+}
+
+/* HEADER */
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px;
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.logo{
+    font-size:30px;
+    font-weight:700;
+    color:#facc15;
+}
+
+.user-box{
+    text-align:right;
+}
+
+.user-name{
+    font-size:16px;
+    opacity:0.8;
+}
+
+.saldo{
+    color:#22c55e;
+    font-size:22px;
+    font-weight:bold;
+}
+
+/* CONTENIDO */
+
+.container{
+    width:95%;
+    max-width:1300px;
+    margin:auto;
+    padding:20px;
+}
+
+/* CARDS */
+
+.card{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    backdrop-filter:blur(10px);
+    border-radius:25px;
+    padding:25px;
+    margin-top:25px;
+    box-shadow:0 0 20px rgba(0,0,0,0.2);
+}
+
+.card h2{
+    margin-bottom:20px;
+    color:#facc15;
+}
+
+/* PRODUCTOS */
+
+.product-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:20px;
+}
+
+.producto{
+    background:#111827;
+    border-radius:20px;
+    padding:20px;
+    transition:0.3s;
+}
+
+.producto:hover{
+    transform:translateY(-5px);
+}
+
+.producto h3{
+    color:#dc2626;
+    margin-bottom:15px;
+}
+
+.producto p{
+    margin-top:8px;
+    opacity:0.9;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:15px;
+    background:#dc2626;
+    color:white;
+    font-size:15px;
+    margin-top:15px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#b91c1c;
+    transform:scale(1.02);
+}
+
+/* HISTORIAL */
+
+.historial-item{
+    background:#111827;
+    padding:15px;
+    border-radius:15px;
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+/* PERFIL */
+
+.perfil p{
+    margin-top:10px;
+    opacity:0.9;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    margin-top:10px;
+    border:none;
+    border-radius:15px;
+    background:#111827;
+    color:white;
+    font-size:15px;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:700px){
+
+    header{
+        flex-direction:column;
+        gap:10px;
+    }
+
+}
+
+</style>
+
 </head>
-<body>
-    <div class="container">
-        <div class="dashboard">
-            <div class="sidebar">
-                <h1>Zyronexa</h1>
-                <nav>
-                    <a href="#" class="nav-item active" onclick="mostrarSeccion('perfil')">Perfil</a>
-                    <a href="#" class="nav-item" onclick="mostrarSeccion('productos')">Productos</a>
-                    <a href="#" class="nav-item" onclick="mostrarSeccion('historial')">Historial</a>
-                    <a href="#" class="nav-item" onclick="logout()">Cerrar Sesión</a>
-                </nav>
-            </div>
-            
-            <div class="main-content">
-                <!-- PERFIL -->
-                <div id="perfil" class="seccion active">
-                    <h2>Mi Perfil</h2>
-                    <div class="profile-card">
-                        <div class="profile-info">
-                            <p><strong>Nombre:</strong> <span id="nombre">{{ usuario['nombre'] }}</span></p>
-                            <p><strong>Teléfono:</strong> <span id="telefono">{{ usuario['telefono'] }}</span></p>
-                            <p><strong>Banco:</strong> <span id="banco">{{ usuario['banco'] }}</span></p>
-                            <p><strong>Fecha de Registro:</strong> <span>{{ usuario['fecha_registro'] }}</span></p>
-                        </div>
-                        <div class="stats">
-                            <div class="stat-box">
-                                <h3>Saldo</h3>
-                                <p class="amount">₡{{ usuario['saldo'] }}</p>
-                            </div>
-                            <div class="stat-box">
-                                <h3>Total Generado</h3>
-                                <p class="amount">₡{{ usuario['total_generado'] }}</p>
-                            </div>
-                            <div class="stat-box">
-                                <h3>Ganancia Diaria</h3>
-                                <p class="amount">₡{{ usuario['ganancia_diaria'] }}</p>
-                            </div>
-                            <div class="stat-box">
-                                <h3>Total Retirado</h3>
-                                <p class="amount">₡{{ usuario['total_retirado'] }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="edit-profile">
-                        <h3>Editar Perfil</h3>
-                        <form onsubmit="actualizarPerfil(event)">
-                            <div class="form-group">
-                                <label for="edit-nombre">Nombre</label>
-                                <input type="text" id="edit-nombre" value="{{ usuario['nombre'] }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-banco">Banco</label>
-                                <input type="text" id="edit-banco" value="{{ usuario['banco'] }}" required>
-                            </div>
-                            <button type="submit" class="btn-primary">Guardar Cambios</button>
-                            <div id="perfil-message" class="message"></div>
-                        </form>
-                    </div>
-                </div>
-                
-                <!-- PRODUCTOS -->
-                <div id="productos" class="seccion">
-                    <h2>Nuestros Productos</h2>
-                    <div class="productos-grid">
-                        <div class="producto-card" onclick="comprarProducto(1)">
-                            <h3>Plan Básico</h3>
-                            <p class="precio">₡500</p>
-                            <p class="ganancia">Ganancia diaria: ₡20</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                        <div class="producto-card" onclick="comprarProducto(2)">
-                            <h3>Plan Estándar</h3>
-                            <p class="precio">₡1,000</p>
-                            <p class="ganancia">Ganancia diaria: ₡40</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                        <div class="producto-card" onclick="comprarProducto(3)">
-                            <h3>Plan Plus</h3>
-                            <p class="precio">₡1,500</p>
-                            <p class="ganancia">Ganancia diaria: ₡60</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                        <div class="producto-card" onclick="comprarProducto(4)">
-                            <h3>Plan Pro</h3>
-                            <p class="precio">₡2,000</p>
-                            <p class="ganancia">Ganancia diaria: ₡80</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                        <div class="producto-card" onclick="comprarProducto(5)">
-                            <h3>Plan Premium</h3>
-                            <p class="precio">₡3,000</p>
-                            <p class="ganancia">Ganancia diaria: ₡120</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                        <div class="producto-card" onclick="comprarProducto(6)">
-                            <h3>Plan Elite</h3>
-                            <p class="precio">₡5,000</p>
-                            <p class="ganancia">Ganancia diaria: ₡200</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                        <div class="producto-card" onclick="comprarProducto(7)">
-                            <h3>Plan Platinum</h3>
-                            <p class="precio">₡10,000</p>
-                            <p class="ganancia">Ganancia diaria: ₡400</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                        <div class="producto-card" onclick="comprarProducto(8)">
-                            <h3>Plan Diamante</h3>
-                            <p class="precio">₡20,000</p>
-                            <p class="ganancia">Ganancia diaria: ₡800</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                    </div>
-                    <div id="producto-message" class="message"></div>
-                </div>
-                
-                <!-- HISTORIAL -->
-                <div id="historial" class="seccion">
-                    <h2>Historial de Transacciones</h2>
-                    <div class="historial-container">
-                        <p>Tu historial aparecerá aquí.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
-        function mostrarSeccion(seccion) {
-            document.querySelectorAll('.seccion').forEach(s => s.classList.remove('active'));
-            document.getElementById(seccion).classList.add('active');
+
+<script>
+
+async function retirarLafise(){
+
+    const monto = document.getElementById(
+        "montoRetiro"
+    ).value;
+
+    const respuesta = await fetch(
+        "/retirar_lafise",
+        {
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+                monto:monto
+            })
+
         }
-    </script>
+    );
+
+    const resultado = await respuesta.json();
+
+    alert(
+        resultado.mensaje || resultado.error
+    );
+
+    if(resultado.mensaje){
+        location.reload();
+    }
+
+}
+
+</script>
+
+<script>
+
+async function actualizarPerfil(){
+
+
+const nombre =
+document.getElementById("nuevoNombre").value;
+
+
+const banco =
+document.getElementById("nuevoBanco").value;
+
+
+
+const respuesta = await fetch(
+"/actualizar_perfil",
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+nombre:nombre,
+banco:banco
+
+})
+
+});
+
+
+
+const resultado =
+await respuesta.json();
+
+
+alert(
+resultado.mensaje || resultado.error
+);
+
+
+
+if(resultado.mensaje){
+
+location.reload();
+
+}
+
+
+}
+
+</script>
+
+<body>
+
+<header>
+
+<div class="logo">
+Zyronexa
+</div>
+
+<div class="user-box">
+
+<div class="user-name">
+{{ usuario["nombre"] }}
+</div>
+
+<div class="saldo">
+💰 {{ usuario["saldo"] }} NIO
+</div>
+
+</div>
+
+</header>
+
+<div class="container">
+
+<!-- ACERCA -->
+
+<div class="card">
+
+<h2>Acerca de</h2>
+
+<p>
+Zyronexa es una plataforma financiera digital moderna diseñada para administrar productos financieros,
+billetera virtual y crecimiento inteligente de inversiones.
+</p>
+
+</div>
+
+<!-- PRODUCTOS -->
+
+<div class="card">
+
+<h2>Productos de Inversion</h2>
+
+<div class="product-grid">
+
+<div class="producto">
+<h3>Producto 1</h3>
+<p>Inversion: 500 NIO</p>
+<p>Ganancia diaria: 20 NIO</p>
+<button onclick="comprarProducto(1)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 2</h3>
+<p>Inversion: 1000 NIO</p>
+<p>Ganancia diaria: 40 NIO</p>
+<button onclick="comprarProducto(2)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 3</h3>
+<p>Inversion: 1500 NIO</p>
+<p>Ganancia diaria: 60 NIO</p>
+<button onclick="comprarProducto(3)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 4</h3>
+<p>Inversion: 2000 NIO</p>
+<p>Ganancia diaria: 80 NIO</p>
+<button onclick="comprarProducto(4)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 5</h3>
+<p>Inversion: 3000 NIO</p>
+<p>Ganancia diaria: 120 NIO</p>
+<button onclick="comprarProducto(5)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 6</h3>
+<p>Inversion: 5000 NIO</p>
+<p>Ganancia diaria: 200 NIO</p>
+<button onclick="comprarProducto(6)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 7</h3>
+<p>Inversion: 10000 NIO</p>
+<p>Ganancia diaria: 400 NIO</p>
+<button onclick="comprarProducto(7)">
+Comprar
+</button>
+</div>
+
+<div class="producto">
+<h3>Producto 8</h3>
+<p>Inversion: 20000 NIO</p>
+<p>Ganancia diaria: 800 NIO</p>
+<button onclick="comprarProducto(8)">
+Comprar
+</button>
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Producto Activo</h2>
+
+{% if usuario["producto_activo"] == 0 %}
+
+<p>No tienes productos activos.</p>
+
+{% else %}
+
+<p>
+Producto #{{ usuario["producto_activo"] }}
+</p>
+
+<p>
+Valor del producto:
+{{ usuario["valor_producto"] }} NIO
+</p>
+
+<p>
+Ganancia diaria:
+{{ usuario["ganancia_diaria"] }} NIO
+</p>
+
+<p>
+Total generado:
+{{ usuario["total_generado"] }} NIO
+</p>
+
+{% endif %}
+
+</div>
+
+<!-- BILLETERA -->
+
+<div class="card">
+
+<h2>Billetera</h2>
+<input
+type="number"
+id="montoRetiro"
+placeholder="Monto a retirar">
+
+<button onclick="retirarLafise()">
+Retirar a LAFISE
+</button>
+<div class="historial-item">
+<span>Saldo LAFISE</span>
+<span>{{ usuario["saldo_lafise"] }} NIO</span>
+</div>
+
+<div class="historial-item">
+<span>Ganancias acumuladas</span>
+<span>{{ usuario["ganancias"] }} NIO</span>
+</div>
+
+<div class="historial-item">
+<span>Total retirado</span>
+<span>{{ usuario["total_retirado"] }} NIO</span>
+</div>
+
+</div>
+
+<!-- HISTORIAL -->
+
+<div class="card">
+
+<h2>Historial</h2>
+
+<div id="historialContainer">
+
+<div class="historial">
++{{ usuario["ganancia_diaria"] }} NIO diarios
+</div>
+
+</div>
+
+</div>
+
+<!-- PERFIL -->
+
+<div class="card perfil">
+
+<h2>Perfil</h2>
+
+<p>Usuario: {{ usuario["nombre"] }}</p>
+
+<p>Telefono: {{ usuario["telefono"] }}</p>
+
+<p>Cuenta LAFISE: {{ usuario["banco"] }}</p>
+
+<p>Estado: Activo</p>
+
+</div>
+<!-- EDITAR PERFIL -->
+
+<div class="card">
+
+<h2>Actualizar Perfil</h2>
+
+
+<input
+type="text"
+id="nuevoNombre"
+placeholder="Nuevo nombre"
+value="{{ usuario['nombre'] }}">
+
+
+<input
+type="text"
+id="nuevoBanco"
+placeholder="Cuenta LAFISE"
+value="{{ usuario['banco'] }}">
+
+
+<button onclick="actualizarPerfil()">
+
+Guardar Cambios
+
+</button>
+
+
+</div>
+</div>
+
+<script>
+
+async function comprarProducto(id){
+
+    alert("Producto " + id + " comprado correctamente");
+
+}
+
+</script>
+<script>
+
+async function comprarProducto(id){
+
+    const respuesta = await fetch(
+        "/comprar_producto",
+        {
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+                producto_id:id
+            })
+
+        }
+    );
+
+    const resultado = await respuesta.json();
+
+    alert(
+        resultado.mensaje || resultado.error
+    );
+
+    if(resultado.mensaje){
+        location.reload();
+    }
+
+}
+
+</script>
 </body>
+
 </html>

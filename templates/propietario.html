@@ -1,35 +1,496 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Propietario - Zyronexa</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Panel Propietario</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Poppins',sans-serif;
+    background:#0f172a;
+    color:white;
+    overflow-x:hidden;
+}
+
+body::before{
+    content:'';
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:
+    radial-gradient(circle at top,#991b1b,#0f172a);
+    z-index:-1;
+}
+
+/* HEADER */
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px;
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.logo{
+    font-size:32px;
+    font-weight:700;
+    color:#facc15;
+}
+
+.saldo{
+    color:#22c55e;
+    font-size:24px;
+    font-weight:bold;
+}
+
+/* CONTENIDO */
+
+.container{
+    width:95%;
+    max-width:1400px;
+    margin:auto;
+    padding:20px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+}
+
+/* CARDS */
+
+.card{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    backdrop-filter:blur(10px);
+    border-radius:25px;
+    padding:25px;
+    margin-top:20px;
+    box-shadow:0 0 20px rgba(0,0,0,0.2);
+}
+
+.card h2{
+    margin-bottom:15px;
+    color:#facc15;
+}
+
+.numero{
+    font-size:35px;
+    font-weight:bold;
+    color:#22c55e;
+}
+
+/* HISTORIAL */
+
+.historial-item{
+    background:#111827;
+    padding:15px;
+    border-radius:15px;
+    margin-top:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+/* BOTONES */
+
+button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:15px;
+    background:#dc2626;
+    color:white;
+    font-size:15px;
+    margin-top:15px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#b91c1c;
+    transform:scale(1.02);
+}
+
+input{
+    width:100%;
+    padding:14px;
+    margin-top:10px;
+    border:none;
+    border-radius:15px;
+    background:#111827;
+    color:white;
+    font-size:15px;
+}
+
+.usuario-card{
+    background:rgba(255,255,255,0.08);
+    padding:20px;
+    margin:15px 0;
+    border-radius:15px;
+    border:1px solid rgba(255,255,255,0.15);
+    box-shadow:0 0 15px rgba(0,0,0,0.3);
+    color:white;
+}
+
+.usuario-card h3{
+    color:#facc15;
+    margin-bottom:10px;
+}
+
+.usuario-card p{
+    color:#e5e7eb;
+    margin:6px 0;
+}
+}
+
+.btn-verde{
+    background:#28a745;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.btn-rojo{
+    background:#dc3545;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:8px;
+    cursor:pointer;
+}
+</style>
+
 </head>
+<script>
+
+async function hacerAdmin(id){
+
+    const respuesta = await fetch(
+        "/hacer_admin",
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                usuario_id:id
+            })
+        }
+    );
+
+    const resultado = await respuesta.json();
+
+    alert(
+        resultado.mensaje || resultado.error
+    );
+
+    location.reload();
+}
+
+async function quitarAdmin(id){
+
+    const respuesta = await fetch(
+        "/quitar_admin",
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                usuario_id:id
+            })
+        }
+    );
+
+    const resultado = await respuesta.json();
+
+    alert(
+        resultado.mensaje || resultado.error
+    );
+
+    location.reload();
+}
+
+</script>
 <body>
-    <div class="container">
-        <div class="dashboard">
-            <div class="sidebar">
-                <h1>Zyronexa</h1>
-                <nav>
-                    <a href="#" class="nav-item active">Panel Admin</a>
-                    <a href="#" class="nav-item" onclick="logout()">Cerrar Sesión</a>
-                </nav>
-            </div>
-            
-            <div class="main-content">
-                <h2>Panel de Propietario</h2>
-                <div class="admin-panel">
-                    <div class="admin-card">
-                        <h3>Gestión General</h3>
-                        <p>Bienvenido al panel de administración de Zyronexa.</p>
-                        <button class="btn-primary">Ver Estadísticas</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+<header>
+
+<div class="logo">
+Zyronexa Admin
+</div>
+
+<div class="saldo">
+💰 {{ propietario["saldo"] }} NIO
+</div>
+
+</header>
+
+<div class="container">
+
+<!-- ESTADISTICAS -->
+
+<div class="grid">
+
+<div class="card">
+
+<h2>Ganancias Totales</h2>
+
+<div class="numero">
+{{ propietario["saldo"] }} NIO
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>Administradores</h2>
+
+<div class="numero">
+{{ total_admins }}
+</div>
+
+</div>
+
+<h2>Saldo LAFISE</h2>
+
+<div class="numero">
+{{ propietario["saldo_lafise"] }} NIO
+</div>
+<div class="card">
+    <h3>Cuenta LAFISE</h3>
+    <p>{{ cuenta_lafise }}</p>
+</div>
+
+<div class="card">
+    <h3>Titular</h3>
+    <p>{{ nombre_lafise }}</p>
+</div>
+
+<div class="card">
+    <h3>Saldo LAFISE</h3>
+    <p>{{ propietario["saldo_lafise"] }} NIO</p>
+</div>
+</div>
+
+<div class="card">
+
+<h2>Usuarios Registrados</h2>
+<div class="numero">
+{{ total_usuarios }}
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Productos Comprados</h2>
+
+<div class="numero">
+{{ productos_activos }}
+</div>
+
+</div>
+
+</div>
+
+<!-- RETIRAR -->
+
+<div class="card">
+
+<h2>Retirar Ganancias</h2>
+
+<input
+type="number"
+id="montoRetiro"
+placeholder="Monto a retirar">
+
+<button onclick="retirarGanancias()">
+Enviar a LAFISE
+</button>
+
+</div>
+
+<!-- HISTORIAL -->
+
+<div class="card">
+
+<h2>Historial Financiero</h2>
+
+{% for item in historial %}
+
+<div class="historial-item">
+
+<span>
+{{ item["descripcion"] }}
+</span>
+
+<span>
+{{ item["monto"] }} NIO
+</span>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<!-- USUARIOS -->
+
+<div class="card">
+
+<h2>Usuarios Registrados</h2>
+
+{% for usuario in usuarios %}
+
+<div class="usuario-card">
+
+    <h3>{{ usuario["nombre"] }}</h3>
+
+    <p>📱 {{ usuario["telefono"] }}</p>
+
+    <p>💰 Saldo: {{ usuario["saldo"] }} NIO</p>
+
+    <p>📈 Generado: {{ usuario["total_generado"] }} NIO</p>
+
+    {% if usuario["es_admin"] == 1 %}
+
+        <p style="color:green;">
+            ✅ Administrador
+        </p>
+
+        <button
+            onclick="quitarAdmin({{ usuario['id'] }})"
+            class="btn-rojo">
+
+            ❌ Quitar Administrador
+
+        </button>
+
+    {% else %}
+
+        <p>
+            👤 Usuario Normal
+        </p>
+
+        <button
+            onclick="hacerAdmin({{ usuario['id'] }})"
+            class="btn-verde">
+
+            ➕ Agregar Administrador
+
+        </button>
+
+    {% endif %}
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</div>
+
+<script>
+
+async function retirarGanancias(){
+
+    const monto = document.getElementById(
+        "montoRetiro"
+    ).value;
+
+    const respuesta = await fetch(
+        "/retirar_propietario",
+        {
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+                monto:monto
+            })
+
+        }
+    );
+
+    const resultado = await respuesta.json();
+
+    alert(
+        resultado.mensaje || resultado.error
+    );
+
+    if(resultado.mensaje){
+        location.reload();
+    }
+
+}
+
+</script>
+<script>
+
+async function hacerAdmin(id){
+
+    const respuesta = await fetch("/hacer_admin",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            usuario_id:id
+        })
+    });
+
+    const resultado = await respuesta.json();
+
+    alert(resultado.mensaje);
+
+    location.reload();
+}
+
+async function quitarAdmin(id){
+
+    const respuesta = await fetch("/quitar_admin",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            usuario_id:id
+        })
+    });
+
+    const resultado = await respuesta.json();
+
+    alert(resultado.mensaje);
+
+    location.reload();
+}
+
+</script>
 </body>
+
 </html>
