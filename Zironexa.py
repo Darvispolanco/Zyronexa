@@ -187,6 +187,13 @@ def reclamar_ganancias():
     conexion.close()
 
 
+@app.before_request
+def inicializar_db():
+    """Asegura que la BD existe antes de cada request"""
+    if not os.path.exists(DB_NAME):
+        crear_base_datos()
+
+
 @app.route("/propietario")
 def propietario():
     telefono = session.get("telefono")
