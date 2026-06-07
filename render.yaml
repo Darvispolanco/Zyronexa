@@ -1,12 +1,16 @@
-services:
-  - type: web
-    name: zyronexa
-    env: python
-    pythonVersion: 3.11
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1
-    envVars:
-      - key: FLASK_ENV
-        value: production
-      - key: FLASK_DEBUG
-        value: "False"
+# Exported from Render on 2026-06-07T18:10:06Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: Zyronexa
+      runtime: python
+      repo: https://github.com/Darvispolanco/Zyronexa
+      plan: free
+      region: oregon
+      buildCommand: pip install -r requirements.txt
+      startCommand: gunicorn Zyronexa:app
+      autoDeployTrigger: "off"
