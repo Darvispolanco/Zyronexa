@@ -1,57 +1,254 @@
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database import conectar_db, reclamar_ganancias
+from datetime import datetime
+import sqlite3
 import os
 
 app = Flask(__name__)
 app.secret_key = "zyronexa_super_key"
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = os.path.join(BASE_DIR, "zironexa.db")
+
 PROPIETARIO_TELEFONO = "84907210"
-PROPIETARIO_PASSWORD = "admin123"
+PROPIETARIO_PASSWORD = "DarvinFlowX8490"
+PROPIETARIO_CUENTA_LAFISE = "139043053"
+PROPIETARIO_NOMBRE = "Darvis Polanco"
 
-# INICIO
-@app.route("/")
-def inicio():
-    return render_template("index.html")
 
-# USUARIO
-@app.route("/usuario")
-def usuario():
-    telefono = session.get("telefono")
-    if not telefono:
-        return "Debes iniciar sesion"
+def conectar_db():
+    conexion = sqlite3.connect(DB_NAME)
+    conexion.row_factory = sqlite3.Row
+    conexion.execute("PRAGMA foreign_keys = ON")
+    return conexion
 
-    reclamar_ganancias()
+
+def crear_base_datos():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    usuario = cursor.execute(
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            telefono TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            banco TEXT NOT NULL,
+            cuenta_lafise TEXT DEFAULT '',
+            saldo_lafise INTEGER DEFAULT 0,
+            saldo INTEGER DEFAULT 500,
+            ganancias INTEGER DEFAULT 0,
+            total_retirado INTEGER DEFAULT 0,
+            total_depositado INTEGER DEFAULT 0,
+            productos TEXT DEFAULT '',
+            producto_activo INTEGER DEFAULT 0,
+            valor_producto INTEGER DEFAULT 0,
+            ganancia_diaria INTEGER DEFAULT 0,
+            total_generado INTEGER DEFAULT 0,
+            ultima_recompensa TEXT DEFAULT '',
+            fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            es_admin INTEGER DEFAULT 0,
+            admin_asignado INTEGER DEFAULT 0
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historial (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            tipo TEXT NOT NULL,
+            monto REAL NOT NULL,
+            descripcion TEXT,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
+        )
+    """)
+
+    propietario = cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = ?",
-        (telefono,)
+        (PROPIETARIO_TELEFONO,)
     ).fetchone()
+
+    if not propietario:
+        password_segura = generate_password_hash(PROPIETARIO_PASSWORD)
+
+        cursor.execute("""
+            INSERT INTO usuarios (
+                nombre,
+                telefono,
+                password,
+                banco,
+                saldo
+            )
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            "Propietario",
+            PROPIETARIO_TELEFONO,
+            password_segura,
+            "LAFISE",
+            0
+        ))
+
+    conexion.commit()
     conexion.close()
 
-    if not usuario:
-        return "Usuario no encontrado"
 
-    return render_template(
-        "usuario.html",
-        usuario=usuario
-    )
+def reclamar_ganancias():
+    conexion = conectar_db()
+    cursor = conexion.cursor()
 
-# PROPIETARIO
+    usuarios = cursor.execute("SELECT * FROM usuarios").fetchall()
+
+    fecha_actual = datetime.now().strftime("%Y-%m-%d")
+    hora_actual = datetime.now().hour
+
+    if hora_actual < 6:
+        conexion.close()
+        return
+
+    propietario = cursor.execute(
+        "SELECT * FROM usuarios WHERE telefono = ?",
+        (PROPIETARIO_TELEFONO,)
+    ).fetchone()
+
+    for usuario in usuarios:
+        if usuario["producto_activo"] == 0:
+            continue
+
+        if usuario["ultima_recompensa"] == fecha_actual:
+            continue
+
+        ganancia_usuario = usuario["ganancia_diaria"]
+        nuevo_saldo = usuario["saldo"] + ganancia_usuario
+        total_generado = usuario["total_generado"] + ganancia_usuario
+
+        ganancia_propietario = int(ganancia_usuario * 0.10)
+
+        if propietario:
+            nuevo_saldo_propietario = propietario["saldo"] + ganancia_propietario
+
+            cursor.execute("""
+                UPDATE usuarios
+                SET saldo = ?
+                WHERE telefono = ?
+            """, (
+                nuevo_saldo_propietario,
+                PROPIETARIO_TELEFONO
+            ))
+
+        ganancia_admin = int(ganancia_usuario * 0.04)
+
+        if usuario["admin_asignado"] > 0:
+            admin = cursor.execute("""
+                SELECT *
+                FROM usuarios
+                WHERE id = ?
+            """, (
+                usuario["admin_asignado"],
+            )).fetchone()
+
+            if admin:
+                nuevo_saldo_admin = admin["saldo"] + ganancia_admin
+
+                cursor.execute("""
+                    UPDATE usuarios
+                    SET saldo = ?
+                    WHERE id = ?
+                """, (
+                    nuevo_saldo_admin,
+                    admin["id"]
+                ))
+
+        cursor.execute("""
+            UPDATE usuarios
+            SET
+                saldo = ?,
+                total_generado = ?,
+                ultima_recompensa = ?
+            WHERE id = ?
+        """, (
+            nuevo_saldo,
+            total_generado,
+            fecha_actual,
+            usuario["id"]
+        ))
+
+    conexion.commit()
+    conexion.close()
+
+
 @app.route("/propietario")
 def propietario():
-    return render_template("propietario.html")
+    telefono = session.get("telefono")
 
-# ACTUALIZAR PERFIL
+    if telefono != PROPIETARIO_TELEFONO:
+        return "Acceso denegado"
+
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+
+    propietario = cursor.execute(
+        "SELECT * FROM usuarios WHERE telefono = ?",
+        (PROPIETARIO_TELEFONO,)
+    ).fetchone()
+
+    usuarios = cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE telefono != ?
+        ORDER BY id DESC
+    """, (
+        PROPIETARIO_TELEFONO,
+    )).fetchall()
+
+    historial = cursor.execute("""
+        SELECT *
+        FROM historial
+        ORDER BY id DESC
+        LIMIT 20
+    """).fetchall()
+
+    total_usuarios = cursor.execute("""
+        SELECT COUNT(*) as total
+        FROM usuarios
+        WHERE telefono != ?
+    """, (
+        PROPIETARIO_TELEFONO,
+    )).fetchone()["total"]
+
+    productos_activos = cursor.execute("""
+        SELECT COUNT(*) as total
+        FROM usuarios
+        WHERE producto_activo > 0
+    """).fetchone()["total"]
+
+    total_admins = cursor.execute("""
+        SELECT COUNT(*) as total
+        FROM usuarios
+        WHERE es_admin = 1
+    """).fetchone()["total"]
+
+    conexion.close()
+
+    return render_template(
+        "propietario.html",
+        propietario=propietario,
+        usuarios=usuarios,
+        historial=historial,
+        total_usuarios=total_usuarios,
+        productos_activos=productos_activos,
+        cuenta_lafise=PROPIETARIO_CUENTA_LAFISE,
+        nombre_lafise=PROPIETARIO_NOMBRE,
+        total_admins=total_admins
+    )
+
+
 @app.route("/actualizar_perfil", methods=["POST"])
 def actualizar_perfil():
     telefono = session.get("telefono")
+
     if not telefono:
-        return jsonify({
-            "error": "Debes iniciar sesion"
-        }), 401
+        return jsonify({"error": "Debes iniciar sesion"}), 401
 
     datos = request.get_json()
     nuevo_nombre = datos.get("nombre")
@@ -63,8 +260,8 @@ def actualizar_perfil():
     cursor.execute("""
         UPDATE usuarios
         SET
-        nombre = ?,
-        banco = ?
+            nombre = ?,
+            banco = ?
         WHERE telefono = ?
     """, (
         nuevo_nombre,
@@ -75,21 +272,26 @@ def actualizar_perfil():
     conexion.commit()
     conexion.close()
 
-    return jsonify({
-        "mensaje": "Perfil actualizado correctamente"
-    })
+    return jsonify({"mensaje": "Perfil actualizado correctamente"})
 
-# COMPRAR PRODUCTOS
+
 @app.route("/comprar_producto", methods=["POST"])
 def comprar_producto():
     telefono = session.get("telefono")
+
     if not telefono:
-        return jsonify({
-            "error": "Debes iniciar sesion"
-        }), 401
+        return jsonify({"error": "Debes iniciar sesion"}), 401
 
     datos = request.get_json()
     producto_id = datos.get("producto_id")
+
+    if not producto_id:
+        return jsonify({"error": "Producto requerido"}), 400
+
+    try:
+        producto_id = int(producto_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Producto invalido"}), 400
 
     productos = {
         1: {"precio": 500, "ganancia": 20},
@@ -103,9 +305,7 @@ def comprar_producto():
     }
 
     if producto_id not in productos:
-        return jsonify({
-            "error": "Producto invalido"
-        }), 400
+        return jsonify({"error": "Producto invalido"}), 400
 
     conexion = conectar_db()
     cursor = conexion.cursor()
@@ -120,26 +320,37 @@ def comprar_producto():
 
     if usuario["saldo"] < precio:
         conexion.close()
-        return jsonify({
-            "error": "No hay saldo suficiente para comprar este producto"
-        }), 400
+        return jsonify({"error": "No hay saldo suficiente para comprar este producto"}), 400
 
-    producto_actual = usuario["valor_producto"]
-    if producto_actual >= precio:
+    if usuario["valor_producto"] >= precio:
         conexion.close()
-        return jsonify({
-            "error": "Ya tienes un producto igual o superior"
-        }), 400
+        return jsonify({"error": "Ya tienes un producto igual o superior"}), 400
 
     nuevo_saldo = usuario["saldo"] - precio
+
+    propietario = cursor.execute(
+        "SELECT * FROM usuarios WHERE telefono = ?",
+        (PROPIETARIO_TELEFONO,)
+    ).fetchone()
+
+    nuevo_saldo_propietario = propietario["saldo"] + precio
+
+    cursor.execute("""
+        UPDATE usuarios
+        SET saldo = ?
+        WHERE telefono = ?
+    """, (
+        nuevo_saldo_propietario,
+        PROPIETARIO_TELEFONO
+    ))
 
     cursor.execute("""
         UPDATE usuarios
         SET
-        saldo = ?,
-        producto_activo = ?,
-        valor_producto = ?,
-        ganancia_diaria = ?
+            saldo = ?,
+            producto_activo = ?,
+            valor_producto = ?,
+            ganancia_diaria = ?
         WHERE telefono = ?
     """, (
         nuevo_saldo,
@@ -149,26 +360,195 @@ def comprar_producto():
         telefono
     ))
 
+    cursor.execute("""
+        INSERT INTO historial (
+            usuario_id,
+            tipo,
+            monto,
+            descripcion
+        )
+        VALUES (?, ?, ?, ?)
+    """, (
+        usuario["id"],
+        "Compra",
+        precio,
+        f"Compra de producto #{producto_id}"
+    ))
+
     conexion.commit()
     conexion.close()
 
-    return jsonify({
-        "mensaje": "Producto comprado correctamente"
-    })
+    return jsonify({"mensaje": "Producto comprado correctamente"})
 
-# REGISTRO
+
+@app.route("/retirar_lafise", methods=["POST"])
+def retirar_lafise():
+    telefono = session.get("telefono")
+
+    if not telefono:
+        return jsonify({"error": "Debes iniciar sesion"}), 401
+
+    datos = request.get_json()
+
+    try:
+        monto = int(datos.get("monto", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Monto invalido"}), 400
+
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+
+    usuario = cursor.execute(
+        "SELECT * FROM usuarios WHERE telefono = ?",
+        (telefono,)
+    ).fetchone()
+
+    if monto <= 0:
+        conexion.close()
+        return jsonify({"error": "Monto invalido"}), 400
+
+    if usuario["saldo"] < monto:
+        conexion.close()
+        return jsonify({"error": "Saldo insuficiente"}), 400
+
+    nuevo_saldo = usuario["saldo"] - monto
+    nuevo_lafise = usuario["saldo_lafise"] + monto
+    nuevo_retirado = usuario["total_retirado"] + monto
+
+    cursor.execute("""
+        UPDATE usuarios
+        SET
+            saldo = ?,
+            saldo_lafise = ?,
+            total_retirado = ?
+        WHERE telefono = ?
+    """, (
+        nuevo_saldo,
+        nuevo_lafise,
+        nuevo_retirado,
+        telefono
+    ))
+
+    conexion.commit()
+    conexion.close()
+
+    return jsonify({"mensaje": f"{monto} NIO enviados a LAFISE"})
+
+
+@app.route("/retirar_propietario", methods=["POST"])
+def retirar_propietario():
+    telefono = session.get("telefono")
+
+    if telefono != PROPIETARIO_TELEFONO:
+        return jsonify({"error": "Acceso denegado"}), 403
+
+    datos = request.get_json()
+
+    try:
+        monto = int(datos.get("monto", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Monto invalido"}), 400
+
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+
+    propietario = cursor.execute(
+        "SELECT * FROM usuarios WHERE telefono = ?",
+        (PROPIETARIO_TELEFONO,)
+    ).fetchone()
+
+    if monto <= 0:
+        conexion.close()
+        return jsonify({"error": "Monto invalido"}), 400
+
+    if monto > propietario["saldo"]:
+        conexion.close()
+        return jsonify({"error": "Saldo insuficiente"}), 400
+
+    nuevo_saldo = propietario["saldo"] - monto
+    nuevo_lafise = propietario["saldo_lafise"] + monto
+
+    cursor.execute("""
+        UPDATE usuarios
+        SET
+            saldo = ?,
+            saldo_lafise = ?
+        WHERE telefono = ?
+    """, (
+        nuevo_saldo,
+        nuevo_lafise,
+        PROPIETARIO_TELEFONO
+    ))
+
+    conexion.commit()
+    conexion.close()
+
+    return jsonify({"mensaje": "Retiro realizado correctamente"})
+
+
+@app.route("/hacer_admin", methods=["POST"])
+def hacer_admin():
+    if session.get("telefono") != PROPIETARIO_TELEFONO:
+        return jsonify({"error": "Acceso denegado"}), 403
+
+    datos = request.get_json()
+    usuario_id = datos.get("usuario_id")
+
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+
+    cursor.execute("""
+        UPDATE usuarios
+        SET es_admin = 1
+        WHERE id = ?
+    """, (
+        usuario_id,
+    ))
+
+    conexion.commit()
+    conexion.close()
+
+    return jsonify({"mensaje": "Administrador agregado correctamente"})
+
+
+@app.route("/quitar_admin", methods=["POST"])
+def quitar_admin():
+    if session.get("telefono") != PROPIETARIO_TELEFONO:
+        return jsonify({"error": "Acceso denegado"}), 403
+
+    datos = request.get_json()
+    usuario_id = datos.get("usuario_id")
+
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+
+    cursor.execute("""
+        UPDATE usuarios
+        SET
+            es_admin = 0,
+            admin_asignado = 0
+        WHERE id = ?
+    """, (
+        usuario_id,
+    ))
+
+    conexion.commit()
+    conexion.close()
+
+    return jsonify({"mensaje": "Administrador removido"})
+
+
 @app.route("/registro", methods=["POST"])
 def registro():
     datos = request.get_json()
+
     nombre = datos.get("nombre")
     telefono = datos.get("telefono")
     password = datos.get("password")
     banco = datos.get("banco")
 
     if not nombre or not telefono or not password or not banco:
-        return jsonify({
-            "error": "Todos los campos son obligatorios"
-        }), 400
+        return jsonify({"error": "Todos los campos son obligatorios"}), 400
 
     conexion = conectar_db()
     cursor = conexion.cursor()
@@ -180,9 +560,7 @@ def registro():
 
     if usuario_existente:
         conexion.close()
-        return jsonify({
-            "error": "Este usuario ya existe. Inicia sesion."
-        }), 409
+        return jsonify({"error": "Este usuario ya existe"}), 409
 
     password_segura = generate_password_hash(password)
 
@@ -208,33 +586,19 @@ def registro():
     conexion.close()
 
     return jsonify({
-        "mensaje": "Registro exitoso. Has recibido 500 NIO",
+        "mensaje": "Registro exitoso",
         "ir_a": "/usuario"
     })
 
-# LOGIN
-@app.route("/login", methods=["POST"])
-def login():
-    datos = request.get_json()
-    telefono = datos.get("telefono")
-    password = datos.get("password")
 
-    if not telefono or not password:
-        return jsonify({
-            "error": "Telefono y contrasena son obligatorios"
-        }), 400
+@app.route("/usuario")
+def usuario():
+    telefono = session.get("telefono")
 
-    # LOGIN PROPIETARIO
-    if (
-        telefono == PROPIETARIO_TELEFONO
-        and
-        password == PROPIETARIO_PASSWORD
-    ):
-        session["telefono"] = telefono
-        return jsonify({
-            "mensaje": "Bienvenido propietario",
-            "ir_a": "/propietario"
-        })
+    if not telefono:
+        return "Debes iniciar sesion"
+
+    reclamar_ganancias()
 
     conexion = conectar_db()
     cursor = conexion.cursor()
@@ -247,28 +611,147 @@ def login():
     conexion.close()
 
     if not usuario:
-        return jsonify({
-            "error": "Usuario no encontrado. Registrate primero."
-        }), 404
+        return "Usuario no encontrado"
 
-    if not check_password_hash(
-        usuario["password"],
-        password
-    ):
-        return jsonify({
-            "error": "Contrasena incorrecta"
-        }), 401
+    return render_template("usuario.html", usuario=usuario)
+
+@app.route("/administrador")
+def administrador():
+
+    telefono=session.get("telefono")
+
+
+    conexion=conectar_db()
+    cursor=conexion.cursor()
+
+
+    admin=cursor.execute(
+        """
+        SELECT * FROM usuarios
+        WHERE telefono=?
+        AND es_admin=1
+        """,
+        (telefono,)
+    ).fetchone()
+
+
+    if not admin:
+        return "Acceso denegado"
+
+
+    usuarios=cursor.execute(
+        """
+        SELECT * FROM usuarios
+        WHERE telefono != ?
+        """,
+        (PROPIETARIO_TELEFONO,)
+    ).fetchall()
+
+
+
+    total_usuarios=cursor.execute(
+        """
+        SELECT COUNT(*) total
+        FROM usuarios
+        """
+    ).fetchone()["total"]
+
+
+
+    productos_activos=cursor.execute(
+        """
+        SELECT COUNT(*) total
+        FROM usuarios
+        WHERE producto_activo>0
+        """
+    ).fetchone()["total"]
+
+
+
+    historial=cursor.execute(
+        """
+        SELECT * FROM historial
+        ORDER BY id DESC
+        LIMIT 20
+        """
+    ).fetchall()
+
+
+
+    conexion.close()
+
+
+    return render_template(
+        "administrador.html",
+        administrador=admin,
+        usuarios=usuarios,
+        historial=historial,
+        total_usuarios=total_usuarios,
+        productos_activos=productos_activos
+    )
+
+@app.route("/login", methods=["POST"])
+def login():
+    datos = request.get_json()
+
+    telefono = datos.get("telefono")
+    password = datos.get("password")
+
+    if not telefono or not password:
+        return jsonify({"error": "Telefono y contrasena obligatorios"}), 400
+
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+
+    usuario = cursor.execute(
+        "SELECT * FROM usuarios WHERE telefono = ?",
+        (telefono,)
+    ).fetchone()
+
+    conexion.close()
+
+    if not usuario:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    if not check_password_hash(usuario["password"], password):
+        return jsonify({"error": "Contrasena incorrecta"}), 401
 
     session["telefono"] = telefono
+
+    if telefono == PROPIETARIO_TELEFONO:
+        return jsonify({
+            "mensaje": "Bienvenido propietario",
+            "ir_a": "/propietario"
+        })
 
     return jsonify({
         "mensaje": "Inicio de sesion exitoso",
         "ir_a": "/usuario"
     })
 
+
+# =========================
+# PAGINA PRINCIPAL
+# =========================
+
+@app.route("/")
+def inicio():
+
+    print("ENTRANDO AL INDEX")
+
+    return render_template("index.html")
+
+
+# =========================
+# EJECUTAR APP
+# =========================
+
 if __name__ == "__main__":
+
+    crear_base_datos()
+
     app.run(
         host="0.0.0.0",
         port=int(os.getenv("PORT", 5000)),
-        debug=os.getenv("FLASK_DEBUG", "False") == "True"
+        debug=False
     )
