@@ -41,7 +41,7 @@ body::before{
 
 header{
     display:flex;
-    justify-content:space-between;
+    justify-content:center;
     align-items:center;
     padding:20px;
 }
@@ -57,6 +57,10 @@ header{
 .hero{
     text-align:center;
     padding:60px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
 }
 
 .hero h1{
@@ -105,6 +109,12 @@ header{
 .tab-btn{
     flex:1;
     background:#111827;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    color:white;
+    cursor:pointer;
+    transition:0.3s;
 }
 
 .tab-btn.active{
@@ -147,6 +157,8 @@ button:hover{
     grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
     gap:20px;
     padding:40px;
+    max-width:1200px;
+    margin:0 auto;
 }
 
 .card{
@@ -154,6 +166,7 @@ button:hover{
     padding:25px;
     border-radius:20px;
     transition:0.3s;
+    text-align:center;
 }
 
 .card:hover{
@@ -169,6 +182,8 @@ button:hover{
 
 .productos{
     padding:40px;
+    max-width:1200px;
+    margin:0 auto;
 }
 
 .productos h2{
@@ -337,15 +352,6 @@ de manera moderna y segura desde cualquier dispositivo.
 
 <div class="auth-box">
 
-<div class="tabs">
-
-<button class="tab-btn active" onclick="mostrarTab('registro')">
-Registro
-</button>
-
-
-</div>
-
 <!-- REGISTRO -->
 <div class="auth-box" id="inicioBox">
 
@@ -412,6 +418,8 @@ Entrar
 <button onclick="volverInicio()">
 Volver
 </button>
+
+</div>
 
 </div>
 
