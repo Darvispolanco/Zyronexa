@@ -174,10 +174,10 @@ def reclamar_ganancias():
         cursor.execute("""
             UPDATE usuarios
             SET
-                saldo = ?,
+                saldo = %s,
                 total_generado = %s,
                 ultima_recompensa = %s
-            WHERE id = ?
+            WHERE id = %s
         """, (
             nuevo_saldo,
             total_generado,
@@ -222,7 +222,7 @@ def propietario():
     total_usuarios = cursor.execute("""
         SELECT COUNT(*) as total
         FROM usuarios
-        WHERE telefono != ?
+        WHERE telefono != %s
     """, (
         PROPIETARIO_TELEFONO,
     )).fetchone()["total"]
@@ -378,7 +378,7 @@ def comprar_producto():
             monto,
             descripcion
         )
-       VALUES (%s, %s, %s, %s, %s)
+       VALUES (%s,%s,%s,%s)
     """, (
         usuario["id"],
         "Compra",
@@ -464,7 +464,7 @@ def retirar_propietario():
     cursor = conexion.cursor()
 
     propietario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
     ).fetchone()
 
@@ -731,12 +731,17 @@ def login():
 
     if telefono == PROPIETARIO_TELEFONO:
         return jsonify({
-            "mensaje": "Bienvenido propietario",
             "ir_a": "/propietario"
         })
 
+
+    if usuario["es_admin"] == 1:
+        return jsonify({
+            "ir_a": "/administrador"
+       })
+
+
     return jsonify({
-        "mensaje": "Inicio de sesion exitoso",
         "ir_a": "/usuario"
     })
 
