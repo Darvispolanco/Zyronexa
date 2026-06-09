@@ -92,7 +92,7 @@ def crear_base_datos():
                 banco,
                 saldo
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (
             "Propietario",
             PROPIETARIO_TELEFONO,
@@ -141,8 +141,8 @@ def reclamar_ganancias():
 
             cursor.execute("""
                 UPDATE usuarios
-                SET saldo = ?
-                WHERE telefono = ?
+                SET saldo = %s
+                WHERE telefono = %s
             """, (
                 nuevo_saldo_propietario,
                 PROPIETARIO_TELEFONO
@@ -154,7 +154,7 @@ def reclamar_ganancias():
             admin = cursor.execute("""
                 SELECT *
                 FROM usuarios
-                WHERE id = ?
+                WHERE id = %s
             """, (
                 usuario["admin_asignado"],
             )).fetchone()
@@ -164,8 +164,8 @@ def reclamar_ganancias():
 
                 cursor.execute("""
                     UPDATE usuarios
-                    SET saldo = ?
-                    WHERE id = ?
+                    SET saldo = %s
+                    WHERE id = %s
                 """, (
                     nuevo_saldo_admin,
                     admin["id"]
@@ -175,8 +175,8 @@ def reclamar_ganancias():
             UPDATE usuarios
             SET
                 saldo = ?,
-                total_generado = ?,
-                ultima_recompensa = ?
+                total_generado = %s,
+                ultima_recompensa = %s
             WHERE id = ?
         """, (
             nuevo_saldo,
@@ -206,7 +206,7 @@ def propietario():
     usuarios = cursor.execute("""
         SELECT *
         FROM usuarios
-        WHERE telefono != ?
+        WHERE telefono != %s
         ORDER BY id DESC
     """, (
         PROPIETARIO_TELEFONO,
@@ -271,9 +271,9 @@ def actualizar_perfil():
     cursor.execute("""
         UPDATE usuarios
         SET
-            nombre = ?,
-            banco = ?
-        WHERE telefono = ?
+            nombre = %s,
+            banco = %s
+        WHERE telefono = %s
     """, (
         nuevo_nombre,
         nuevo_banco,
@@ -348,8 +348,8 @@ def comprar_producto():
 
     cursor.execute("""
         UPDATE usuarios
-        SET saldo = ?
-        WHERE telefono = ?
+        SET saldo = %s
+        WHERE telefono = %s
     """, (
         nuevo_saldo_propietario,
         PROPIETARIO_TELEFONO
@@ -358,11 +358,11 @@ def comprar_producto():
     cursor.execute("""
         UPDATE usuarios
         SET
-            saldo = ?,
-            producto_activo = ?,
-            valor_producto = ?,
-            ganancia_diaria = ?
-        WHERE telefono = ?
+            saldo = %s,
+            producto_activo = %s,
+            valor_producto = %s,
+            ganancia_diaria = %s
+        WHERE telefono = %s
     """, (
         nuevo_saldo,
         producto_id,
@@ -378,7 +378,7 @@ def comprar_producto():
             monto,
             descripcion
         )
-        VALUES (?, ?, ?, ?)
+       VALUES (%s, %s, %s, %s, %s)
     """, (
         usuario["id"],
         "Compra",
@@ -429,10 +429,10 @@ def retirar_lafise():
     cursor.execute("""
         UPDATE usuarios
         SET
-            saldo = ?,
-            saldo_lafise = ?,
-            total_retirado = ?
-        WHERE telefono = ?
+            saldo = %s,
+            saldo_lafise = %s,
+            total_retirado = %s
+        WHERE telefono = %s
     """, (
         nuevo_saldo,
         nuevo_lafise,
@@ -482,9 +482,9 @@ def retirar_propietario():
     cursor.execute("""
         UPDATE usuarios
         SET
-            saldo = ?,
-            saldo_lafise = ?
-        WHERE telefono = ?
+            saldo = %s,
+            saldo_lafise = %s
+        WHERE telefono = %s
     """, (
         nuevo_saldo,
         nuevo_lafise,
@@ -511,7 +511,7 @@ def hacer_admin():
     cursor.execute("""
         UPDATE usuarios
         SET es_admin = 1
-        WHERE id = ?
+        WHERE id = %s
     """, (
         usuario_id,
     ))
@@ -538,7 +538,7 @@ def quitar_admin():
         SET
             es_admin = 0,
             admin_asignado = 0
-        WHERE id = ?
+        WHERE id = %s
     """, (
         usuario_id,
     ))
@@ -583,7 +583,7 @@ def registro():
             banco,
             saldo
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     """, (
         nombre,
         telefono,
@@ -639,7 +639,7 @@ def administrador():
     admin=cursor.execute(
         """
         SELECT * FROM usuarios
-        WHERE telefono=?
+        WHERE telefono=%s
         AND es_admin=1
         """,
         (telefono,)
@@ -653,7 +653,7 @@ def administrador():
     usuarios=cursor.execute(
         """
         SELECT * FROM usuarios
-        WHERE telefono != ?
+        WHERE telefono != %s
         """,
         (PROPIETARIO_TELEFONO,)
     ).fetchall()
