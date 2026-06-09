@@ -17,6 +17,11 @@ app = Flask(
     static_folder=STATIC_DIR
 )
 
+@app.before_request
+def iniciar():
+
+    crear_base_datos()
+
 app.secret_key = "zyronexa_super_key"
 
 PROPIETARIO_TELEFONO = "84907210"
@@ -36,70 +41,73 @@ def conectar_db():
 
 
 def crear_base_datos():
+
     conexion = conectar_db()
     cursor = conexion.cursor()
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id SERIAL PRIMARY KEY,
-            nombre TEXT NOT NULL,
-            telefono TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            banco TEXT NOT NULL,
-            cuenta_lafise TEXT DEFAULT '',
-            saldo_lafise INTEGER DEFAULT 0,
-            saldo INTEGER DEFAULT 500,
-            ganancias INTEGER DEFAULT 0,
-            total_retirado INTEGER DEFAULT 0,
-            total_depositado INTEGER DEFAULT 0,
-            productos TEXT DEFAULT '',
-            producto_activo INTEGER DEFAULT 0,
-            valor_producto INTEGER DEFAULT 0,
-            ganancia_diaria INTEGER DEFAULT 0,
-            total_generado INTEGER DEFAULT 0,
-            ultima_recompensa TEXT DEFAULT '',
-            fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            es_admin INTEGER DEFAULT 0,
-            admin_asignado INTEGER DEFAULT 0
-        )
+    CREATE TABLE IF NOT EXISTS usuarios (
+        id SERIAL PRIMARY KEY,
+        nombre TEXT NOT NULL,
+        telefono TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        banco TEXT NOT NULL,
+        cuenta_lafise TEXT DEFAULT '',
+        saldo_lafise INTEGER DEFAULT 0,
+        saldo INTEGER DEFAULT 500,
+        ganancias INTEGER DEFAULT 0,
+        total_retirado INTEGER DEFAULT 0,
+        total_depositado INTEGER DEFAULT 0,
+        productos TEXT DEFAULT '',
+        producto_activo INTEGER DEFAULT 0,
+        valor_producto INTEGER DEFAULT 0,
+        ganancia_diaria INTEGER DEFAULT 0,
+        total_generado INTEGER DEFAULT 0,
+        ultima_recompensa TEXT DEFAULT '',
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        es_admin INTEGER DEFAULT 0,
+        admin_asignado INTEGER DEFAULT 0
+    );
     """)
+
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS historial (
-            id SERIAL PRIMARY KEY,
-            usuario_id INTEGER NOT NULL,
-            tipo TEXT NOT NULL,
-            monto REAL NOT NULL,
-            descripcion TEXT,
-            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
-        )
+    CREATE TABLE IF NOT EXISTS historial (
+        id SERIAL PRIMARY KEY,
+        usuario_id INTEGER REFERENCES usuarios(id),
+        tipo TEXT NOT NULL,
+        monto REAL NOT NULL,
+        descripcion TEXT,
+        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
     """)
 
+
     propietario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = %s",
+        "SELECT * FROM usuarios WHERE telefono=%s",
         (PROPIETARIO_TELEFONO,)
     ).fetchone()
 
+
     if not propietario:
-        password_segura = generate_password_hash(PROPIETARIO_PASSWORD)
+
+        password_segura = generate_password_hash(
+            PROPIETARIO_PASSWORD
+        )
 
         cursor.execute("""
-            INSERT INTO usuarios (
-                nombre,
-                telefono,
-                password,
-                banco,
-                saldo
-            )
-            VALUES (%s,%s,%s,%s,%s)
-        """, (
-            "Propietario",
-            PROPIETARIO_TELEFONO,
-            password_segura,
-            "LAFISE",
-            0
+        INSERT INTO usuarios
+        (nombre,telefono,password,banco,saldo)
+        VALUES (%s,%s,%s,%s,%s)
+        """,
+        (
+        PROPIETARIO_NOMBRE,
+        PROPIETARIO_TELEFONO,
+        password_segura,
+        "LAFISE",
+        0
         ))
+
 
     conexion.commit()
     conexion.close()
