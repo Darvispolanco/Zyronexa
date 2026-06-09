@@ -92,7 +92,7 @@ def crear_base_datos():
                 banco,
                 saldo
             )
-            VALUES (%s, %s, %s, %s, %s)
+            VALUES (%s,%s,%s,%s,%s)
         """, (
             "Propietario",
             PROPIETARIO_TELEFONO,
@@ -583,7 +583,7 @@ def registro():
             banco,
             saldo
         )
-        VALUES (%s, %s, %s, %s, %s)
+        VALUES (%s,%s,%s,%s,%s)
     """, (
         nombre,
         telefono,
@@ -762,10 +762,9 @@ def inicio():
 # EJECUTAR APP
 # =========================
 
+crear_base_datos()
+
 if __name__ == "__main__":
-
-    crear_base_datos()
-
     app.run(
         host="0.0.0.0",
         port=int(os.getenv("PORT",5000)),
