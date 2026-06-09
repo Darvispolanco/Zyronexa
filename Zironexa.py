@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import sqlite3
 import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 # Configuración de rutas
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,8 +19,6 @@ app = Flask(
 
 app.secret_key = "zyronexa_super_key"
 
-DB_NAME = os.path.join(BASE_DIR, "zironexa.db")
-
 PROPIETARIO_TELEFONO = "84907210"
 PROPIETARIO_PASSWORD = "DarvinFlowX8490"
 PROPIETARIO_CUENTA_LAFISE = "139043053"
@@ -27,9 +26,12 @@ PROPIETARIO_NOMBRE = "Darvis Polanco"
 
 
 def conectar_db():
-    conexion = sqlite3.connect(DB_NAME)
-    conexion.row_factory = sqlite3.Row
-    conexion.execute("PRAGMA foreign_keys = ON")
+
+    conexion = psycopg2.connect(
+        os.getenv("DATABASE_URL"),
+        cursor_factory=RealDictCursor
+    )
+
     return conexion
 
 
@@ -39,7 +41,7 @@ def crear_base_datos():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             nombre TEXT NOT NULL,
             telefono TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
@@ -64,7 +66,7 @@ def crear_base_datos():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS historial (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             usuario_id INTEGER NOT NULL,
             tipo TEXT NOT NULL,
             monto REAL NOT NULL,
@@ -75,7 +77,7 @@ def crear_base_datos():
     """)
 
     propietario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
     ).fetchone()
 
@@ -117,7 +119,7 @@ def reclamar_ganancias():
         return
 
     propietario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
     ).fetchone()
 
@@ -186,14 +188,6 @@ def reclamar_ganancias():
     conexion.commit()
     conexion.close()
 
-
-@app.before_request
-def inicializar_db():
-    """Asegura que la BD existe antes de cada request"""
-    if not os.path.exists(DB_NAME):
-        crear_base_datos()
-
-
 @app.route("/propietario")
 def propietario():
     telefono = session.get("telefono")
@@ -205,7 +199,7 @@ def propietario():
     cursor = conexion.cursor()
 
     propietario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
     ).fetchone()
 
@@ -328,7 +322,7 @@ def comprar_producto():
     cursor = conexion.cursor()
 
     usuario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
     ).fetchone()
 
@@ -346,7 +340,7 @@ def comprar_producto():
     nuevo_saldo = usuario["saldo"] - precio
 
     propietario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
     ).fetchone()
 
@@ -416,7 +410,7 @@ def retirar_lafise():
     cursor = conexion.cursor()
 
     usuario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
     ).fetchone()
 
@@ -571,7 +565,7 @@ def registro():
     cursor = conexion.cursor()
 
     usuario_existente = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
     ).fetchone()
 
@@ -621,7 +615,7 @@ def usuario():
     cursor = conexion.cursor()
 
     usuario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
     ).fetchone()
 
@@ -721,7 +715,7 @@ def login():
     cursor = conexion.cursor()
 
     usuario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono = ?",
+        "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
     ).fetchone()
 
@@ -769,6 +763,6 @@ if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=int(os.getenv("PORT", 5000)),
+        port=int(os.getenv("PORT",5000)),
         debug=False
     )
