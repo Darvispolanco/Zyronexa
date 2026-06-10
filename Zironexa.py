@@ -19,78 +19,6 @@ app = Flask(
 
 app.secret_key = "zyronexa_super_key"
 
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
-
-app.secret_key = "zyronexa_super_key"
-
 
 PROPIETARIO_TELEFONO = "84907210"
 PROPIETARIO_PASSWORD = "DarvinFlowX8490"
@@ -199,7 +127,7 @@ def reclamar_ganancias():
         "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
     )
-propietario = cursor.fetchone()
+    propietario = cursor.fetchone()
 
     for usuario in usuarios:
         if usuario["producto_activo"] == 0:
@@ -227,8 +155,6 @@ propietario = cursor.fetchone()
             ))
         ganancia_admin = int(ganancia_usuario * 0.04)
 
-        if usuario["admin_asignado"] > 0:
-
     cursor.execute("""
         SELECT *
         FROM usuarios
@@ -238,94 +164,23 @@ propietario = cursor.fetchone()
     ))
 
     admin = cursor.fetchone()
+            if usuario["admin_asignado"] > 0:
 
-        if usuario["admin_asignado"] > 0:
+                cursor.execute("""
+                SELECT *
+                FROM usuarios
+                WHERE id = %s
+            """, (
+             usuario["admin_asignado"],
+            ))
 
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
-
-    admin = cursor.fetchone()
-    
-        if usuario["admin_asignado"] > 0:
-
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
-
-    admin = cursor.fetchone()
-        if usuario["admin_asignado"] > 0:
-
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
-
-    admin = cursor.fetchone()
-        if usuario["admin_asignado"] > 0:
-
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
-
-    admin = cursor.fetchone()
-        if usuario["admin_asignado"] > 0:
-
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
-
-    admin = cursor.fetchone()
-        if usuario["admin_asignado"] > 0:
-
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
-
-    admin = cursor.fetchone()
-        if usuario["admin_asignado"] > 0:
-
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
-
-    admin = cursor.fetchone()
-        if usuario["admin_asignado"] > 0:
-
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
+            cursor.execute("""
+                SELECT *
+                FROM usuarios
+                WHERE id = %s
+        """, (
+            usuario["admin_asignado"],
+        ))
 
     admin = cursor.fetchone()
 
