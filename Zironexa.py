@@ -17,10 +17,80 @@ app = Flask(
     static_folder=STATIC_DIR
 )
 
-@app.before_request
-def iniciar():
+app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
 
 app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
+app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
+app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
+app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
+app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
+app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
+app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
+app.secret_key = "zyronexa_super_key"
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
+
+app.secret_key = "zyronexa_super_key"
+
 
 PROPIETARIO_TELEFONO = "84907210"
 PROPIETARIO_PASSWORD = "DarvinFlowX8490"
@@ -769,10 +839,13 @@ def inicio():
 # EJECUTAR APP
 # =========================
 
-if __name__ == "__main__":
-
+try:
     crear_base_datos()
+except Exception as e:
+    print("Error creando BD:", e)
 
+
+if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=int(os.getenv("PORT",5000)),
