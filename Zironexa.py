@@ -663,7 +663,6 @@ def administrador():
     if not admin:
         return "Acceso denegado"
 
-
     usuarios=cursor.execute(
         """
         SELECT * FROM usuarios
@@ -672,16 +671,12 @@ def administrador():
         (PROPIETARIO_TELEFONO,)
     ).fetchall()
 
-
-
     total_usuarios=cursor.execute(
         """
         SELECT COUNT(*) total
         FROM usuarios
         """
     ).fetchone()["total"]
-
-
 
     productos_activos=cursor.execute(
         """
@@ -700,8 +695,6 @@ def administrador():
         LIMIT 20
         """
     ).fetchall()
-
-
 
     conexion.close()
 
