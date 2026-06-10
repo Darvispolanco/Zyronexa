@@ -151,7 +151,7 @@ def crear_base_datos():
     """)
 
 
-   cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono=%s",
         (PROPIETARIO_TELEFONO,)
     )
