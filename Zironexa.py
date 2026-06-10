@@ -83,10 +83,12 @@ def crear_base_datos():
     """)
 
 
-    propietario = cursor.execute(
+   cursor.execute(
         "SELECT * FROM usuarios WHERE telefono=%s",
         (PROPIETARIO_TELEFONO,)
-    ).fetchone()
+    )
+
+        propietario = cursor.fetchone()
 
 
     if not propietario:
@@ -126,10 +128,11 @@ def reclamar_ganancias():
         conexion.close()
         return
 
-    propietario = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
-    ).fetchone()
+    )
+propietario = cursor.fetchone()
 
     for usuario in usuarios:
         if usuario["producto_activo"] == 0:
@@ -206,46 +209,52 @@ def propietario():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    propietario = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
-    ).fetchone()
+    )
+    propietario = cursor.fetchone()
 
-    usuarios = cursor.execute("""
+    cursor.execute("""
         SELECT *
         FROM usuarios
         WHERE telefono != %s
         ORDER BY id DESC
     """, (
         PROPIETARIO_TELEFONO,
-    )).fetchall()
+    ))
+    usuarios = cursor.fetchall()
 
-    historial = cursor.execute("""
+    cursor.execute("""
         SELECT *
         FROM historial
         ORDER BY id DESC
         LIMIT 20
-    """).fetchall()
+    """)
+    historial = cursor.fetchall()
 
-    total_usuarios = cursor.execute("""
+    cursor.execute("""
         SELECT COUNT(*) as total
         FROM usuarios
         WHERE telefono != %s
     """, (
         PROPIETARIO_TELEFONO,
-    )).fetchone()["total"]
+    ))
+    total_usuarios = cursor.fetchone()["total"]
 
-    productos_activos = cursor.execute("""
+    cursor.execute("""
         SELECT COUNT(*) as total
         FROM usuarios
         WHERE producto_activo > 0
-    """).fetchone()["total"]
-
-    total_admins = cursor.execute("""
+    """)
+    productos_activos = cursor.fetchone()["total"]
+    
+   cursor.execute("""
         SELECT COUNT(*) as total
         FROM usuarios
         WHERE es_admin = 1
-    """).fetchone()["total"]
+    """)
+    total_admins = cursor.fetchone()["total"]
 
     conexion.close()
 
