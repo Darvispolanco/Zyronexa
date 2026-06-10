@@ -228,14 +228,106 @@ propietario = cursor.fetchone()
         ganancia_admin = int(ganancia_usuario * 0.04)
 
         if usuario["admin_asignado"] > 0:
-          cursor.execute("""
-              SELECT *
-                FROM usuarios
-                WHERE id = %s
-            """, (
-                usuario["admin_asignado"],
-            ))
-            admin = cursor.fetchone()
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
+
+        if usuario["admin_asignado"] > 0:
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
+    
+        if usuario["admin_asignado"] > 0:
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
+        if usuario["admin_asignado"] > 0:
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
+        if usuario["admin_asignado"] > 0:
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
+        if usuario["admin_asignado"] > 0:
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
+        if usuario["admin_asignado"] > 0:
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
+        if usuario["admin_asignado"] > 0:
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
+        if usuario["admin_asignado"] > 0:
+
+    cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+    """, (
+        usuario["admin_asignado"],
+    ))
+
+    admin = cursor.fetchone()
 
             if admin:
                 nuevo_saldo_admin = admin["saldo"] + ganancia_admin
