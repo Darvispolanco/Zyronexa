@@ -20,8 +20,6 @@ app = Flask(
 @app.before_request
 def iniciar():
 
-    crear_base_datos()
-
 app.secret_key = "zyronexa_super_key"
 
 PROPIETARIO_TELEFONO = "84907210"
@@ -87,8 +85,7 @@ def crear_base_datos():
         "SELECT * FROM usuarios WHERE telefono=%s",
         (PROPIETARIO_TELEFONO,)
     )
-
-        propietario = cursor.fetchone()
+    propietario = cursor.fetchone()
 
 
     if not propietario:
@@ -158,17 +155,17 @@ propietario = cursor.fetchone()
                 nuevo_saldo_propietario,
                 PROPIETARIO_TELEFONO
             ))
-
         ganancia_admin = int(ganancia_usuario * 0.04)
 
         if usuario["admin_asignado"] > 0:
-            admin = cursor.execute("""
-                SELECT *
+          cursor.execute("""
+              SELECT *
                 FROM usuarios
                 WHERE id = %s
             """, (
                 usuario["admin_asignado"],
-            )).fetchone()
+            ))
+            admin = cursor.fetchone()
 
             if admin:
                 nuevo_saldo_admin = admin["saldo"] + ganancia_admin
@@ -234,13 +231,12 @@ def propietario():
     historial = cursor.fetchall()
 
     cursor.execute("""
-        SELECT COUNT(*) as total
-        FROM usuarios
-        WHERE telefono != %s
-    """, (
-        PROPIETARIO_TELEFONO,
-    ))
+            SELECT COUNT(*) as total
+            FROM usuarios
+    """)
+
     total_usuarios = cursor.fetchone()["total"]
+    
 
     cursor.execute("""
         SELECT COUNT(*) as total
@@ -338,10 +334,11 @@ def comprar_producto():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    usuario = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
-    ).fetchone()
+    )
+    usuario = cursor.fetchone()
 
     precio = productos[producto_id]["precio"]
     ganancia = productos[producto_id]["ganancia"]
@@ -779,9 +776,10 @@ def inicio():
 # EJECUTAR APP
 # =========================
 
-crear_base_datos()
-
 if __name__ == "__main__":
+
+    crear_base_datos()
+
     app.run(
         host="0.0.0.0",
         port=int(os.getenv("PORT",5000)),
