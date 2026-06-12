@@ -114,8 +114,8 @@ def reclamar_ganancias():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    usuarios = cursor.execute("SELECT * FROM usuarios").fetchall()
-
+    cursor.execute("SELECT * FROM usuarios")
+    usuarios = cursor.fetchall()
     fecha_actual = datetime.now().strftime("%Y-%m-%d")
     hora_actual = datetime.now().hour
 
@@ -369,10 +369,11 @@ def comprar_producto():
 
     nuevo_saldo = usuario["saldo"] - precio
 
-    propietario = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
-    ).fetchone()
+    )
+    propietario = cursor.fetchone()
 
     nuevo_saldo_propietario = propietario["saldo"] + precio
 
@@ -439,10 +440,11 @@ def retirar_lafise():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    usuario = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
-    ).fetchone()
+    )
+    usuario = cursor.fetchone()
 
     if monto <= 0:
         conexion.close()
@@ -493,10 +495,11 @@ def retirar_propietario():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    propietario = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (PROPIETARIO_TELEFONO,)
-    ).fetchone()
+    )
+    propietario = cursor.fetchone()
 
     if monto <= 0:
         conexion.close()
@@ -594,10 +597,11 @@ def registro():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    usuario_existente = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
-    ).fetchone()
+    )
+    usuario_existente = cursor.fetchone()
 
     if usuario_existente:
         conexion.close()
@@ -644,10 +648,11 @@ def usuario():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    usuario = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
-    ).fetchone()
+    )
+    usuario = cursor.fetchone()
 
     conexion.close()
 
@@ -666,51 +671,56 @@ def administrador():
     cursor=conexion.cursor()
 
 
-    admin=cursor.execute(
+    cursor.execute(
         """
         SELECT * FROM usuarios
         WHERE telefono=%s
         AND es_admin=1
         """,
         (telefono,)
-    ).fetchone()
+    )
+    admin=cursor.fetchone()
 
 
     if not admin:
         return "Acceso denegado"
 
-    usuarios=cursor.execute(
+    cursor.execute(
         """
         SELECT * FROM usuarios
         WHERE telefono != %s
         """,
         (PROPIETARIO_TELEFONO,)
-    ).fetchall()
+    )
+    usuarios=cursor.fetchall()
 
-    total_usuarios=cursor.execute(
+    cursor.execute(
         """
         SELECT COUNT(*) total
         FROM usuarios
         """
-    ).fetchone()["total"]
+    )
+    total_usuarios=cursor.fetchone()["total"]
 
-    productos_activos=cursor.execute(
+    cursor.execute(
         """
         SELECT COUNT(*) total
         FROM usuarios
         WHERE producto_activo>0
         """
-    ).fetchone()["total"]
+    )
+    productos_activos=cursor.fetchone()["total"]
 
 
 
-    historial=cursor.execute(
+    cursor.execute(
         """
         SELECT * FROM historial
         ORDER BY id DESC
         LIMIT 20
         """
-    ).fetchall()
+    )
+    historial=cursor.fetchall()
 
     conexion.close()
 
