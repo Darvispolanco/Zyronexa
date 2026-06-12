@@ -164,45 +164,44 @@ def reclamar_ganancias():
     ))
 
     admin = cursor.fetchone()
-            if usuario["admin_asignado"] > 0:
 
-                cursor.execute("""
-                SELECT *
-                FROM usuarios
-                WHERE id = %s
-            """, (
-             usuario["admin_asignado"],
+    if usuario["admin_asignado"] > 0:
+        
+        cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
+        """, (
+            usuario["admin_asignado"],
             ))
-
-            cursor.execute("""
-                SELECT *
-                FROM usuarios
-                WHERE id = %s
+            
+        cursor.execute("""
+        SELECT *
+        FROM usuarios
+        WHERE id = %s
         """, (
             usuario["admin_asignado"],
         ))
 
     admin = cursor.fetchone()
-
-            if admin:
-                nuevo_saldo_admin = admin["saldo"] + ganancia_admin
-
-                cursor.execute("""
-                    UPDATE usuarios
-                    SET saldo = %s
-                    WHERE id = %s
-                """, (
-                    nuevo_saldo_admin,
-                    admin["id"]
-                ))
+    if admin:
+        nuevo_saldo_admin = admin["saldo"] + ganancia_admin
+        cursor.execute("""
+        UPDATE usuarios
+        SET saldo = %s
+        WHERE id = %s
+        """, (
+            nuevo_saldo_admin,
+            admin["id"]
+        ))
 
         cursor.execute("""
-            UPDATE usuarios
-            SET
-                saldo = %s,
-                total_generado = %s,
-                ultima_recompensa = %s
-            WHERE id = %s
+        UPDATE usuarios
+        SET
+        saldo = %s,
+        total_generado = %s,
+        ultima_recompensa = %s
+        WHERE id = %s
         """, (
             nuevo_saldo,
             total_generado,
@@ -262,7 +261,7 @@ def propietario():
     """)
     productos_activos = cursor.fetchone()["total"]
     
-   cursor.execute("""
+    cursor.execute("""
         SELECT COUNT(*) as total
         FROM usuarios
         WHERE es_admin = 1
