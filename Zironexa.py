@@ -747,10 +747,11 @@ def login():
     conexion = conectar_db()
     cursor = conexion.cursor()
 
-    usuario = cursor.execute(
+    cursor.execute(
         "SELECT * FROM usuarios WHERE telefono = %s",
         (telefono,)
-    ).fetchone()
+    )
+    usuario = cursor.fetchone()
 
     conexion.close()
 
