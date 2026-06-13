@@ -183,7 +183,7 @@ def reclamar_ganancias():
                 usuario["admin_asignado"],
             ))
 
-    admin = cursor.fetchone()
+            admin = cursor.fetchone()
         if admin:
             nuevo_saldo_admin = admin["saldo"] + ganancia_admin
             cursor.execute("""
