@@ -153,61 +153,61 @@ def reclamar_ganancias():
                 nuevo_saldo_propietario,
                 PROPIETARIO_TELEFONO
             ))
-        ganancia_admin = int(ganancia_usuario * 0.04)
+            ganancia_admin = int(ganancia_usuario * 0.04)
 
-    cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-    """, (
-        usuario["admin_asignado"],
-    ))
+            cursor.execute("""
+                SELECT *
+                FROM usuarios
+                WHERE id = %s
+            """, (
+                usuario["admin_asignado"],
+            ))
 
-    admin = cursor.fetchone()
+            admin = cursor.fetchone()
 
-    if usuario["admin_asignado"] > 0:
+        if usuario["admin_asignado"] > 0:
         
-        cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-        """, (
-            usuario["admin_asignado"],
+            cursor.execute("""
+                SELECT *
+                FROM usuarios
+                WHERE id = %s
+            """, (
+                usuario["admin_asignado"],
             ))
             
-        cursor.execute("""
-        SELECT *
-        FROM usuarios
-        WHERE id = %s
-        """, (
-            usuario["admin_asignado"],
-        ))
+            cursor.execute("""
+                SELECT *
+                FROM usuarios
+                WHERE id = %s
+            """, (
+                usuario["admin_asignado"],
+            ))
 
     admin = cursor.fetchone()
     if admin:
         nuevo_saldo_admin = admin["saldo"] + ganancia_admin
-        cursor.execute("""
-        UPDATE usuarios
-        SET saldo = %s
-        WHERE id = %s
-        """, (
-            nuevo_saldo_admin,
-            admin["id"]
-        ))
+            cursor.execute("""
+                UPDATE usuarios
+                SET saldo = %s
+                WHERE id = %s
+            """, (
+                nuevo_saldo_admin,
+                admin["id"]
+            ))
 
-        cursor.execute("""
-        UPDATE usuarios
-        SET
-        saldo = %s,
-        total_generado = %s,
-        ultima_recompensa = %s
-        WHERE id = %s
-        """, (
-            nuevo_saldo,
-            total_generado,
-            fecha_actual,
-            usuario["id"]
-        ))
+            cursor.execute("""
+                UPDATE usuarios
+                SET
+                saldo = %s,
+                total_generado = %s,
+                ultima_recompensa = %s
+                WHERE id = %s
+            """, (
+                nuevo_saldo,
+                total_generado,
+                fecha_actual,
+                usuario["id"]
+            ))
 
     conexion.commit()
     conexion.close()
