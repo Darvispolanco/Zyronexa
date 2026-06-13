@@ -184,8 +184,8 @@ def reclamar_ganancias():
             ))
 
     admin = cursor.fetchone()
-    if admin:
-        nuevo_saldo_admin = admin["saldo"] + ganancia_admin
+        if admin:
+            nuevo_saldo_admin = admin["saldo"] + ganancia_admin
             cursor.execute("""
                 UPDATE usuarios
                 SET saldo = %s
