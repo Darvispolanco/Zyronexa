@@ -200,8 +200,8 @@ def reclamar_ganancias():
                 usuario["id"]
             ))
 
-conexion.commit()
-conexion.close()
+    conexion.commit()
+    conexion.close()
 
 @app.route("/propietario")
 def propietario():
