@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
+import stripe 
 # Configuración de rutas
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
@@ -18,7 +18,7 @@ app = Flask(
 )
 
 app.secret_key = "zyronexa_super_key"
-
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 PROPIETARIO_TELEFONO = "84907210"
 PROPIETARIO_PASSWORD = "DarvinFlowX8490"
@@ -790,7 +790,117 @@ def inicio():
 
     return render_template("index.html")
 
+@app.route("/crear_pago", methods=["POST"])
+def crear_pago():
 
+    telefono = session.get("telefono")
+
+    if not telefono:
+        return jsonify({"error":"No hay sesión"}),401
+
+
+    datos = request.get_json()
+
+    monto = int(datos.get("monto",0))
+
+
+    if monto <= 0:
+        return jsonify({"error":"Monto inválido"}),400
+
+
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+
+
+    usuario = cursor.execute(
+        "SELECT * FROM usuarios WHERE telefono=%s",
+        (telefono,)
+    ).fetchone()
+
+
+    pago = stripe.checkout.Session.create(
+
+        payment_method_types=[
+            "card"
+        ],
+
+        mode="payment",
+
+        line_items=[{
+
+            "price_data":{
+
+                "currency":"usd",
+
+                "product_data":{
+                    "name":"Recarga Zyronexa"
+                },
+
+                "unit_amount":monto * 100
+
+            },
+
+            "quantity":1
+        }],
+
+
+        metadata={
+            "usuario_id": usuario["id"]
+        },
+
+
+        success_url=
+        "https://zyronexa.onrender.com/usuario",
+
+        cancel_url=
+        "https://zyronexa.onrender.com/"
+    )
+
+
+    conexion.close()
+
+
+    return jsonify({
+        "url":pago.url
+    })
+
+@app.route("/stripe_webhook", methods=["POST"])
+def stripe_webhook():
+
+    evento = request.json
+
+
+    if evento["type"] == "checkout.session.completed":
+
+        pago = evento["data"]["object"]
+
+        usuario_id = pago["metadata"]["usuario_id"]
+
+        monto = pago["amount_total"] / 100
+
+
+        conexion = conectar_db()
+        cursor = conexion.cursor()
+
+
+        cursor.execute("""
+        UPDATE usuarios
+        SET saldo = saldo + %s,
+        total_depositado = total_depositado + %s
+        WHERE id=%s
+        """,
+        (
+        monto,
+        monto,
+        usuario_id
+        ))
+
+
+        conexion.commit()
+        conexion.close()
+
+
+    return "OK"
 # =========================
 # EJECUTAR APP
 # =========================
