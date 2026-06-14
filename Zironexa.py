@@ -133,19 +133,17 @@ def reclamar_ganancias():
     for usuario in usuarios:
         
         if usuario["producto_activo"] == 0:
-        continue
+            continue
         
         if usuario["ultima_recompensa"] == fecha_actual:
-        continue
-
-
+            continue
+        
         ganancia_usuario = usuario["ganancia_diaria"]
-    
+
         nuevo_saldo = usuario["saldo"] + ganancia_usuario
-    
+
         total_generado = usuario["total_generado"] + ganancia_usuario
-    
-    
+        
         # Usuario recibe su ganancia
         cursor.execute("""
             UPDATE usuarios
@@ -160,11 +158,10 @@ def reclamar_ganancias():
             fecha_actual,
             usuario["id"]
         ))
-    
-    
+
+
         # Propietario recibe 10%
         ganancia_propietario = int(ganancia_usuario * 0.10)
-    
         cursor.execute("""
             UPDATE usuarios
             SET saldo = saldo + %s
@@ -173,11 +170,10 @@ def reclamar_ganancias():
             ganancia_propietario,
             PROPIETARIO_TELEFONO
         ))
-    
-    
+
+
         # Admin recibe 4%
         if usuario["admin_asignado"] > 0:
-        
             cursor.execute("""
                 UPDATE usuarios
                 SET saldo = saldo + %s
@@ -186,27 +182,8 @@ def reclamar_ganancias():
                 int(ganancia_usuario * 0.04),
                 usuario["admin_asignado"]
             ))
-                admin = cursor.fetchone()
-    
-        if usuario["admin_asignado"] > 0:
-            
-            cursor.execute("""
-               SELECT *
-               FROM usuarios
-               WHERE id = %s
-            "", (
-               usuario["admin_asignado"],
-            )
-        
-            cursor.execute("""
-               SELECT *
-               FROM usuarios
-               WHERE id = %s
-            "", (
-               usuario["admin_asignado"],
-            )
-    
             admin = cursor.fetchone()
+
         if admin:
             nuevo_saldo_admin = admin["saldo"] + ganancia_admin
             cursor.execute("""
@@ -230,10 +207,10 @@ def reclamar_ganancias():
                 fecha_actual,
                 usuario["id"]
             ))
-    
+
         conexion.commit()
         conexion.close()
-    
+
 @app.route("/propietario")
 def propietario():
     telefono = session.get("telefono")
