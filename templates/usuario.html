@@ -468,6 +468,10 @@ function depositar(){
     }
 
 
+    function depositar(){
+
+    let monto = prompt("Monto a depositar");
+
     fetch("/crear_pago",{
 
         method:"POST",
@@ -486,17 +490,9 @@ function depositar(){
 
     .then(data=>{
 
-        if(data.url){
+        window.location.href = data.url;
 
-            window.location.href = data.url;
-
-        }else{
-
-            alert(data.error);
-
-        }
-
-    })
+    });
 
 }
 
