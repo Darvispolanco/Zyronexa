@@ -450,11 +450,57 @@ placeholder="Monto a retirar">
 <button onclick="retirarLafise()">
 Retirar a LAFISE
 </button>
+    
 <div class="historial-item">
 <span>Saldo LAFISE</span>
 <span>{{ usuario["saldo_lafise"] }} NIO</span>
 </div>
+<button onclick="depositar()">Depositar saldo</button>
 
+<script>
+
+function depositar(){
+
+    let monto = prompt("Ingrese monto a depositar");
+
+    if(!monto){
+        return;
+    }
+
+
+    fetch("/crear_pago",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+            monto:monto
+        })
+
+    })
+
+    .then(res=>res.json())
+
+    .then(data=>{
+
+        if(data.url){
+
+            window.location.href = data.url;
+
+        }else{
+
+            alert(data.error);
+
+        }
+
+    })
+
+}
+
+</script>
 <div class="historial-item">
 <span>Ganancias acumuladas</span>
 <span>{{ usuario["ganancias"] }} NIO</span>
