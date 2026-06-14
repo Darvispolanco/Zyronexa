@@ -116,6 +116,7 @@ def reclamar_ganancias():
 
     cursor.execute("SELECT * FROM usuarios")
     usuarios = cursor.fetchall()
+
     fecha_actual = datetime.now().strftime("%Y-%m-%d")
     hora_actual = datetime.now().hour
 
@@ -130,84 +131,105 @@ def reclamar_ganancias():
     propietario = cursor.fetchone()
 
     for usuario in usuarios:
-        if usuario["producto_activo"] == 0:
-            continue
 
-        if usuario["ultima_recompensa"] == fecha_actual:
-            continue
+    if usuario["producto_activo"] == 0:
+        continue
 
-        ganancia_usuario = usuario["ganancia_diaria"]
-        nuevo_saldo = usuario["saldo"] + ganancia_usuario
-        total_generado = usuario["total_generado"] + ganancia_usuario
+    if usuario["ultima_recompensa"] == fecha_actual:
+        continue
 
-        ganancia_propietario = int(ganancia_usuario * 0.10)
 
-        if propietario:
-            nuevo_saldo_propietario = propietario["saldo"] + ganancia_propietario
+    ganancia_usuario = usuario["ganancia_diaria"]
 
-            cursor.execute("""
-                UPDATE usuarios
-                SET saldo = %s
-                WHERE telefono = %s
-            """, (
-                nuevo_saldo_propietario,
-                PROPIETARIO_TELEFONO
-            ))
-            ganancia_admin = int(ganancia_usuario * 0.04)
+    nuevo_saldo = usuario["saldo"] + ganancia_usuario
 
-            cursor.execute("""
-                SELECT *
-                FROM usuarios
-                WHERE id = %s
-            """, (
-                usuario["admin_asignado"],
-            ))
+    total_generado = usuario["total_generado"] + ganancia_usuario
 
+
+    # Usuario recibe su ganancia
+    cursor.execute("""
+        UPDATE usuarios
+        SET
+            saldo = %s,
+            total_generado = %s,
+            ultima_recompensa = %s
+        WHERE id = %s
+    """,(
+        nuevo_saldo,
+        total_generado,
+        fecha_actual,
+        usuario["id"]
+    ))
+
+
+    # Propietario recibe 10%
+    ganancia_propietario = int(ganancia_usuario * 0.10)
+
+    cursor.execute("""
+        UPDATE usuarios
+        SET saldo = saldo + %s
+        WHERE telefono = %s
+    """,(
+        ganancia_propietario,
+        PROPIETARIO_TELEFONO
+    ))
+
+
+    # Admin recibe 4%
+    if usuario["admin_asignado"] > 0:
+
+        cursor.execute("""
+            UPDATE usuarios
+            SET saldo = saldo + %s
+            WHERE id = %s
+        """,(
+            int(ganancia_usuario * 0.04),
+            usuario["admin_asignado"]
+        ))
             admin = cursor.fetchone()
 
-        if usuario["admin_asignado"] > 0:
+    if usuario["admin_asignado"] > 0:
         
-            cursor.execute("""
-                SELECT *
-                FROM usuarios
-                WHERE id = %s
-            """, (
-                usuario["admin_asignado"],
-            ))
-            
-            cursor.execute("""
-                SELECT *
-                FROM usuarios
-                WHERE id = %s
-            """, (
-                usuario["admin_asignado"],
-            ))
+        cursor.execute("""
+           SELECT *
+           FROM usuarios
+           WHERE id = %s
+        "", (
+           usuario["admin_asignado"],
+        )
+    
+        cursor.execute("""
+           SELECT *
+           FROM usuarios
+           WHERE id = %s
+        "", (
+           usuario["admin_asignado"],
+        )
 
-            admin = cursor.fetchone()
-        if admin:
-            nuevo_saldo_admin = admin["saldo"] + ganancia_admin
-            cursor.execute("""
-                UPDATE usuarios
-                SET saldo = %s
-                WHERE id = %s
-            """, (
-                nuevo_saldo_admin,
-                admin["id"]
-            ))
-
-            cursor.execute("""
-                UPDATE usuarios
-                SET
-                saldo = %s,
-                total_generado = %s,
-                ultima_recompensa = %s
-                WHERE id = %s
-            """, (
-                nuevo_saldo,
-                total_generado,
-                fecha_actual,
-                usuario["id"]
-            ))
+        admin = cursor.fetchone()
+    if admin:
+        nuevo_saldo_admin = admin["saldo"] + ganancia_admin
+        cursor.execute("""
+            UPDATE usuarios
+            SET saldo = %s
+            WHERE id = %s
+        """, (
+            nuevo_saldo_admin,
+            admin["id"]
+        )) 
+        cursor.execute("""
+            UPDATE usuarios
+            SET
+            saldo = %s,
+            total_generado = %s,
+            ultima_recompensa = %s
+            WHERE id = %s
+        """, (
+            nuevo_saldo,
+            total_generado,
+            fecha_actual,
+            usuario["id"]
+        ))
 
     conexion.commit()
     conexion.close()
