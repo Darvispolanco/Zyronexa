@@ -171,34 +171,34 @@ def reclamar_ganancias():
             PROPIETARIO_TELEFONO
         ))
 # Admin recibe 4%
-if usuario["admin_asignado"] > 0:
+        if usuario["admin_asignado"] > 0:
 
-    ganancia_admin = int(ganancia_usuario * 0.04)
+            ganancia_admin = int(ganancia_usuario * 0.04)
 
-    cursor.execute("""
-        UPDATE usuarios
-        SET saldo = saldo + %s
-        WHERE id = %s
-    """,(
-        ganancia_admin,
-        usuario["admin_asignado"]
-    ))
+            cursor.execute("""
+                UPDATE usuarios
+                SET saldo = saldo + %s
+                WHERE id = %s
+            """,(
+                ganancia_admin,
+                usuario["admin_asignado"]
+            ))
 
 
 # Actualizar usuario que generó la ganancia
-cursor.execute("""
-    UPDATE usuarios
-    SET
-        saldo = %s,
-        total_generado = %s,
-        ultima_recompensa = %s
-    WHERE id = %s
-""",(
-    nuevo_saldo,
-    total_generado,
-    fecha_actual,
-    usuario["id"]
-))
+            cursor.execute("""
+                UPDATE usuarios
+                SET
+                    saldo = %s,
+                    total_generado = %s,
+                    ultima_recompensa = %s
+                WHERE id = %s
+            """,(
+                nuevo_saldo,
+                total_generado,
+                fecha_actual,
+                usuario["id"]
+            ))
 
 conexion.commit()
 conexion.close()
