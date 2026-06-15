@@ -786,7 +786,13 @@ def inicio():
 
 @app.route("/crear_pago", methods=["POST"])
 def crear_pago():
+    print("ENTRO A CREAR PAGO")
 
+    datos = request.get_json()
+
+    print(datos)
+
+    ...
     telefono = session.get("telefono")
 
     if not telefono:
