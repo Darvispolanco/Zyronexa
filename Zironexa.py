@@ -786,13 +786,9 @@ def inicio():
 
 @app.route("/crear_pago", methods=["POST"])
 def crear_pago():
+
     print("ENTRO A CREAR PAGO")
 
-    datos = request.get_json()
-
-    print(datos)
-
-    ...
     telefono = session.get("telefono")
 
     if not telefono:
@@ -811,6 +807,30 @@ def crear_pago():
             return jsonify({
                 "error":"Monto inválido"
             }),400
+
+
+        conexion = conectar_db()
+        cursor = conexion.cursor()
+
+
+        cursor.execute(
+            """
+            SELECT id 
+            FROM usuarios 
+            WHERE telefono=%s
+            """,
+            (telefono,)
+        )
+
+        usuario = cursor.fetchone()
+
+        conexion.close()
+
+
+        if not usuario:
+            return jsonify({
+                "error":"Usuario no existe"
+            }),404
 
 
         pago = stripe.checkout.Session.create(
@@ -832,6 +852,7 @@ def crear_pago():
                             "name":"Saldo Zyronexa"
                         },
 
+                        # monto en centavos
                         "unit_amount": monto * 100
                     },
 
@@ -842,12 +863,17 @@ def crear_pago():
 
 
             metadata={
-                "telefono":telefono
+
+                "usuario_id": str(usuario["id"]),
+                "telefono": telefono,
+                "dolares": str(monto)
+
             },
 
 
             success_url=
             "https://zyronexa.onrender.com/usuario?pago=ok",
+
 
             cancel_url=
             "https://zyronexa.onrender.com/usuario"
@@ -876,9 +902,16 @@ def stripe_webhook():
 
         pago = evento["data"]["object"]
 
+
         usuario_id = pago["metadata"]["usuario_id"]
 
-        monto = pago["amount_total"] / 100
+
+        dolares = pago["amount_total"] / 100
+
+
+        # conversión USD a monedas
+        monedas = int(dolares * 36)
+
 
 
         conexion = conectar_db()
@@ -887,14 +920,15 @@ def stripe_webhook():
 
         cursor.execute("""
         UPDATE usuarios
-        SET saldo = saldo + %s,
-        total_depositado = total_depositado + %s
+        SET 
+            saldo = saldo + %s,
+            total_depositado = total_depositado + %s
         WHERE id=%s
         """,
         (
-        monto,
-        monto,
-        usuario_id
+            monedas,
+            monedas,
+            usuario_id
         ))
 
 
