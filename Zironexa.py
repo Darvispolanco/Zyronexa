@@ -782,79 +782,83 @@ def inicio():
 
     return render_template("index.html")
 
+
+
 @app.route("/crear_pago", methods=["POST"])
 def crear_pago():
 
     telefono = session.get("telefono")
 
     if not telefono:
-        return jsonify({"error":"No hay sesión"}),401
+        return jsonify({
+            "error":"Sesión no encontrada"
+        }),401
 
 
-    datos = request.get_json()
+    datos = request.json
 
-    monto = int(datos.get("monto",0))
+    try:
 
+        monto = int(datos.get("cantidad"))
 
-    if monto <= 0:
-        return jsonify({"error":"Monto inválido"}),400
-
-
-    conexion = conectar_db()
-    cursor = conexion.cursor()
-
-
-    usuario = cursor.execute(
-        "SELECT * FROM usuarios WHERE telefono=%s",
-        (telefono,)
-    ).fetchone()
+        if monto <= 0:
+            return jsonify({
+                "error":"Monto inválido"
+            }),400
 
 
-    pago = stripe.checkout.Session.create(
+        pago = stripe.checkout.Session.create(
 
-        payment_method_types=[
-            "card"
-        ],
+            mode="payment",
 
-        mode="payment",
+            payment_method_types=[
+                "card"
+            ],
 
-        line_items=[{
+            line_items=[
 
-            "price_data":{
+                {
+                    "price_data":{
 
-                "currency":"usd",
+                        "currency":"usd",
 
-                "product_data":{
-                    "name":"Recarga Zyronexa"
-                },
+                        "product_data":{
+                            "name":"Saldo Zyronexa"
+                        },
 
-                "unit_amount":monto * 100
+                        "unit_amount": monto * 100
+                    },
 
+                    "quantity":1
+                }
+
+            ],
+
+
+            metadata={
+                "telefono":telefono
             },
 
-            "quantity":1
-        }],
+
+            success_url=
+            "https://zyronexa.onrender.com/usuario?pago=ok",
+
+            cancel_url=
+            "https://zyronexa.onrender.com/usuario"
+
+        )
 
 
-        metadata={
-            "usuario_id": usuario["id"]
-        },
+        return jsonify({
+            "url":pago.url
+        })
 
 
-        success_url=
-        "https://zyronexa.onrender.com/usuario",
+    except Exception as e:
 
-        cancel_url=
-        "https://zyronexa.onrender.com/"
-    )
-
-
-    conexion.close()
-
-
-    return jsonify({
-        "url":pago.url
-    })
+        return jsonify({
+            "error":str(e)
+        }),400
 
 @app.route("/stripe_webhook", methods=["POST"])
 def stripe_webhook():
