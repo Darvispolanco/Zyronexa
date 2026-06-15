@@ -3,4 +3,3 @@ gunicorn
 psycopg2-binary
 werkzeug
 stripe
-json
