@@ -457,22 +457,20 @@ Retirar a LAFISE
 </div>
 <button onclick="depositar()">Depositar saldo</button>
 
+
 <script>
 
-function depositar(){
+async function depositar(){
 
-    let monto = prompt("Ingrese monto a depositar");
+    let monto = prompt("¿Cuánto deseas depositar?");
+
 
     if(!monto){
         return;
     }
 
 
-    function depositar(){
-
-    let monto = prompt("Monto a depositar");
-
-    fetch("/crear_pago",{
+    const respuesta = await fetch("/crear_pago",{
 
         method:"POST",
 
@@ -481,22 +479,31 @@ function depositar(){
         },
 
         body:JSON.stringify({
-            monto:monto
+
+            cantidad: monto
+
         })
 
-    })
+    });
 
-    .then(res=>res.json())
 
-    .then(data=>{
+    const data = await respuesta.json();
+
+
+    if(data.url){
 
         window.location.href = data.url;
 
-    });
+    }else{
+
+        alert(data.error);
+
+    }
 
 }
 
 </script>
+
 <div class="historial-item">
 <span>Ganancias acumuladas</span>
 <span>{{ usuario["ganancias"] }} NIO</span>
