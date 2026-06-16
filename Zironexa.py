@@ -20,6 +20,7 @@ app = Flask(
 
 app.secret_key = "zyronexa_super_key"
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+stripe.api_key = "sk_test_51Thk139z35tjBDOa4Vz4DBitJREohc8ljGaGn2ajzjQhSJI1qZbhHH6Vf1PKpALFniO5ed6oPH8lXrFE8td82voZ00XR2S49Fr"
 
 PROPIETARIO_TELEFONO = "84907210"
 PROPIETARIO_PASSWORD = "DarvinFlowX8490"
@@ -875,65 +876,36 @@ def crear_pago():
             "error":str(e)
         }),400
 
-@app.route("/stripe_webhook", methods=["POST"])
-def stripe_webhook():
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
 
     payload = request.data
     sig_header = request.headers.get("Stripe-Signature")
 
-    endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+    endpoint_secret = "whsec_WgHwl5tgnSBd5sXEFfwiSRRs1dY7sCF1"
 
     try:
-        evento = stripe.Webhook.construct_event(
+        event = stripe.Webhook.construct_event(
             payload,
             sig_header,
             endpoint_secret
         )
 
     except Exception as e:
-        print("Error webhook:", e)
-        return "Webhook error", 400
+        return jsonify({"error": str(e)}), 400
 
 
-    print("WEBHOOK RECIBIDO:", evento["type"])
+    if event["type"] == "payment_intent.succeeded":
+
+        pago = event["data"]["object"]
+
+        print("Pago recibido:", pago["amount"])
 
 
-    if evento["type"] == "checkout.session.completed":
-
-        pago = evento["data"]["object"]
-
-        usuario_id = pago["metadata"]["usuario_id"]
-
-        dolares = float(
-            pago["metadata"]["dolares"]
-        )
-
-        monedas = int(dolares * 36)
+    return jsonify({"status":"ok"})
 
 
-        conexion = conectar_db()
-        cursor = conexion.cursor()
-
-
-        cursor.execute("""
-        UPDATE usuarios
-        SET 
-        saldo = saldo + %s,
-        total_depositado = total_depositado + %s
-        WHERE id=%s
-        """,
-        (
-            monedas,
-            monedas,
-            usuario_id
-        ))
-
-
-        conexion.commit()
-        conexion.close()
-
-
-    return "OK"
 # =========================
 # EJECUTAR APP
 # =========================
