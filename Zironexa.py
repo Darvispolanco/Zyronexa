@@ -788,50 +788,33 @@ def inicio():
 @app.route("/crear_pago", methods=["POST"])
 def crear_pago():
 
-    print("ENTRO A CREAR PAGO")
-
     telefono = session.get("telefono")
 
     if not telefono:
-        return jsonify({
-            "error":"Sesión no encontrada"
-        }),401
+        return jsonify({"error":"Sesión no encontrada"}),401
 
 
     datos = request.json
 
     try:
 
-        monto = int(datos.get("cantidad"))
+        dolares = int(datos.get("cantidad"))
 
-        if monto <= 0:
-            return jsonify({
-                "error":"Monto inválido"
-            }),400
+        if dolares <= 0:
+            return jsonify({"error":"Monto inválido"}),400
 
 
         conexion = conectar_db()
         cursor = conexion.cursor()
 
-
         cursor.execute(
-            """
-            SELECT id 
-            FROM usuarios 
-            WHERE telefono=%s
-            """,
+            "SELECT * FROM usuarios WHERE telefono=%s",
             (telefono,)
         )
 
         usuario = cursor.fetchone()
 
         conexion.close()
-
-
-        if not usuario:
-            return jsonify({
-                "error":"Usuario no existe"
-            }),404
 
 
         pago = stripe.checkout.Session.create(
@@ -843,38 +826,37 @@ def crear_pago():
             ],
 
             line_items=[
-
                 {
                     "price_data":{
-
                         "currency":"usd",
 
                         "product_data":{
                             "name":"Saldo Zyronexa"
                         },
 
-                        # monto en centavos
-                        "unit_amount": monto * 100
+                        "unit_amount": dolares * 100
                     },
 
                     "quantity":1
                 }
-
             ],
 
 
             metadata={
 
+                # aquí mandamos el usuario
                 "usuario_id": str(usuario["id"]),
+
                 "telefono": telefono,
-                "dolares": str(monto)
+
+                # guardamos los dólares
+                "dolares": str(dolares)
 
             },
 
 
             success_url=
             "https://zyronexa.onrender.com/usuario?pago=ok",
-
 
             cancel_url=
             "https://zyronexa.onrender.com/usuario"
@@ -896,10 +878,12 @@ def crear_pago():
 @app.route("/stripe_webhook", methods=["POST"])
 def stripe_webhook():
 
+
     evento = request.json
 
 
     if evento["type"] == "checkout.session.completed":
+
 
         pago = evento["data"]["object"]
 
@@ -907,12 +891,13 @@ def stripe_webhook():
         usuario_id = pago["metadata"]["usuario_id"]
 
 
-        dolares = pago["amount_total"] / 100
+        dolares = float(
+            pago["metadata"]["dolares"]
+        )
 
 
-        # conversión USD a monedas
+        # Conversión
         monedas = int(dolares * 36)
-
 
 
         conexion = conectar_db()
@@ -922,19 +907,20 @@ def stripe_webhook():
         cursor.execute("""
         UPDATE usuarios
         SET 
-            saldo = saldo + %s,
-            total_depositado = total_depositado + %s
+        saldo = saldo + %s,
+        total_depositado = total_depositado + %s
         WHERE id=%s
         """,
         (
-            monedas,
-            monedas,
-            usuario_id
+        monedas,
+        monedas,
+        usuario_id
         ))
 
 
         conexion.commit()
         conexion.close()
+
 
 
     return "OK"
