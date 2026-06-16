@@ -877,30 +877,37 @@ def crear_pago():
 
 @app.route("/stripe_webhook", methods=["POST"])
 def stripe_webhook():
-    evento = request.json
 
-    print("WEBHOOK RECIBIDO:")
-    print(evento)
+    payload = request.data
+    sig_header = request.headers.get("Stripe-Signature")
+
+    endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+    try:
+        evento = stripe.Webhook.construct_event(
+            payload,
+            sig_header,
+            endpoint_secret
+        )
+
+    except Exception as e:
+        print("Error webhook:", e)
+        return "Webhook error", 400
 
 
-    evento = request.json
+    print("WEBHOOK RECIBIDO:", evento["type"])
 
 
     if evento["type"] == "checkout.session.completed":
 
-
         pago = evento["data"]["object"]
 
-
         usuario_id = pago["metadata"]["usuario_id"]
-
 
         dolares = float(
             pago["metadata"]["dolares"]
         )
 
-
-        # Conversión
         monedas = int(dolares * 36)
 
 
@@ -916,15 +923,14 @@ def stripe_webhook():
         WHERE id=%s
         """,
         (
-        monedas,
-        monedas,
-        usuario_id
+            monedas,
+            monedas,
+            usuario_id
         ))
 
 
         conexion.commit()
         conexion.close()
-
 
 
     return "OK"
