@@ -877,6 +877,10 @@ def crear_pago():
 
 @app.route("/stripe_webhook", methods=["POST"])
 def stripe_webhook():
+    evento = request.json
+
+    print("WEBHOOK RECIBIDO:")
+    print(evento)
 
 
     evento = request.json
