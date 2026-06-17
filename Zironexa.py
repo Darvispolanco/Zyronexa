@@ -20,8 +20,6 @@ app = Flask(
 
 app.secret_key = "zyronexa_super_key"
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-stripe.api_key = "sk_test_51Thk139z35tjBDOa4Vz4DBitJREohc8ljGaGn2ajzjQhSJI1qZbhHH6Vf1PKpALFniO5ed6oPH8lXrFE8td82voZ00XR2S49Fr"
-
 PROPIETARIO_TELEFONO = "84907210"
 PROPIETARIO_PASSWORD = "DarvinFlowX8490"
 PROPIETARIO_CUENTA_LAFISE = "139043053"
@@ -470,11 +468,6 @@ def retirar_lafise():
 
     return jsonify({"mensaje": f"{monto} NIO enviados a LAFISE"})
 
-
-@app.route("/retirar_propietario", methods=["POST"])
-def retirar_propietario():
-    telefono = session.get("telefono")
-
     if telefono != PROPIETARIO_TELEFONO:
         return jsonify({"error": "Acceso denegado"}), 403
 
@@ -896,11 +889,11 @@ def webhook():
         return jsonify({"error": str(e)}), 400
 
 
-    if event["type"] == "payment_intent.succeeded":
+if event["type"] == "checkout.session.completed":
 
-        pago = event["data"]["object"]
+    session_pago = event["data"]["object"]
 
-        print("Pago recibido:", pago["amount"])
+    print("Pago recibido:", session_pago["metadata"])
 
 
     return jsonify({"status":"ok"})
