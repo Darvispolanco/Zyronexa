@@ -1,626 +1,530 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Zyronexa Usuario</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-<style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-body{
-    font-family:'Poppins',sans-serif;
-    background:#0f172a;
-    color:white;
-    overflow-x:hidden;
-}
-
-/* Fondo */
-
-body::before{
-    content:'';
-    position:fixed;
-    width:100%;
-    height:100%;
-    background:
-    radial-gradient(circle at top,#991b1b,#0f172a);
-    z-index:-1;
-}
-
-/* HEADER */
-
-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:20px;
-    background:rgba(255,255,255,0.03);
-    backdrop-filter:blur(10px);
-    border-bottom:1px solid rgba(255,255,255,0.08);
-}
-
-.logo{
-    font-size:30px;
-    font-weight:700;
-    color:#facc15;
-}
-
-.user-box{
-    text-align:right;
-}
-
-.user-name{
-    font-size:16px;
-    opacity:0.8;
-}
-
-.saldo{
-    color:#22c55e;
-    font-size:22px;
-    font-weight:bold;
-}
-
-/* CONTENIDO */
-
-.container{
-    width:95%;
-    max-width:1300px;
-    margin:auto;
-    padding:20px;
-}
-
-/* CARDS */
-
-.card{
-    background:rgba(255,255,255,0.05);
-    border:1px solid rgba(255,255,255,0.08);
-    backdrop-filter:blur(10px);
-    border-radius:25px;
-    padding:25px;
-    margin-top:25px;
-    box-shadow:0 0 20px rgba(0,0,0,0.2);
-}
-
-.card h2{
-    margin-bottom:20px;
-    color:#facc15;
-}
-
-/* PRODUCTOS */
-
-.product-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-    gap:20px;
-}
-
-.producto{
-    background:#111827;
-    border-radius:20px;
-    padding:20px;
-    transition:0.3s;
-}
-
-.producto:hover{
-    transform:translateY(-5px);
-}
-
-.producto h3{
-    color:#dc2626;
-    margin-bottom:15px;
-}
-
-.producto p{
-    margin-top:8px;
-    opacity:0.9;
-}
-
-button{
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:15px;
-    background:#dc2626;
-    color:white;
-    font-size:15px;
-    margin-top:15px;
-    cursor:pointer;
-    transition:0.3s;
-}
-
-button:hover{
-    background:#b91c1c;
-    transform:scale(1.02);
-}
-
-/* HISTORIAL */
-
-.historial-item{
-    background:#111827;
-    padding:15px;
-    border-radius:15px;
-    margin-top:10px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-/* PERFIL */
-
-.perfil p{
-    margin-top:10px;
-    opacity:0.9;
-}
-
-input{
-    width:100%;
-    padding:14px;
-    margin-top:10px;
-    border:none;
-    border-radius:15px;
-    background:#111827;
-    color:white;
-    font-size:15px;
-}
-
-/* RESPONSIVE */
-
-@media(max-width:700px){
-
-    header{
-        flex-direction:column;
-        gap:10px;
-    }
-
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zyronexa - Dashboard</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .header h1 {
+            color: #667eea;
+        }
+        .logout-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .productos-section, .acciones-section, .historial-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .productos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .producto-card {
+            border: 2px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .producto-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+        }
+        .producto-card h4 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .producto-card .precio {
+            font-size: 28px;
+            color: #667eea;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .producto-card .ganancia {
+            color: #2ecc71;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        .btn:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-recompensa {
+            background: #2ecc71;
+            margin-bottom: 10px;
+        }
+        .btn-recompensa:hover {
+            background: #27ae60;
+        }
+        .btn-retirar {
+            background: #f39c12;
+            margin-bottom: 10px;
+        }
+        .btn-retirar:hover {
+            background: #e67e22;
+        }
+        .btn-depositar {
+            background: #3498db;
+        }
+        .btn-depositar:hover {
+            background: #2980b9;
+        }
+        .producto-activo {
+            background: #e8f5e9;
+            border: 2px solid #2ecc71;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .producto-activo h3 {
+            color: #2ecc71;
+            margin-bottom: 10px;
+        }
+        .historial-item {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .historial-item:last-child {
+            border-bottom: none;
+        }
+        .tipo-deposito { color: #2ecc71; font-weight: bold; }
+        .tipo-retiro { color: #e74c3c; font-weight: bold; }
+        .tipo-compra { color: #f39c12; font-weight: bold; }
+        .tipo-recompensa { color: #3498db; font-weight: bold; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-content h2 {
+            margin-bottom: 20px;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            flex: 1;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
 </head>
-
-<script>
-
-async function retirarLafise(){
-
-    const monto = document.getElementById(
-        "montoRetiro"
-    ).value;
-
-    const respuesta = await fetch(
-        "/retirar_lafise",
-        {
-
-            method:"POST",
-
-            headers:{
-                "Content-Type":"application/json"
-            },
-
-            body:JSON.stringify({
-                monto:monto
-            })
-
-        }
-    );
-
-    const resultado = await respuesta.json();
-
-    alert(
-        resultado.mensaje || resultado.error
-    );
-
-    if(resultado.mensaje){
-        location.reload();
-    }
-
-}
-
-</script>
-
-<script>
-
-async function actualizarPerfil(){
-
-
-const nombre =
-document.getElementById("nuevoNombre").value;
-
-
-const banco =
-document.getElementById("nuevoBanco").value;
-
-
-
-const respuesta = await fetch(
-"/actualizar_perfil",
-{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json"
-},
-
-body:JSON.stringify({
-
-nombre:nombre,
-banco:banco
-
-})
-
-});
-
-
-
-const resultado =
-await respuesta.json();
-
-
-alert(
-resultado.mensaje || resultado.error
-);
-
-
-
-if(resultado.mensaje){
-
-location.reload();
-
-}
-
-
-}
-
-</script>
-
 <body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Zyronexa</h1>
+                <p>Bienvenido, {{ usuario.nombre }}</p>
+            </div>
+            <button class="logout-btn" onclick="window.location.href='/logout'">Cerrar Sesión</button>
+        </div>
 
-<header>
+        <div id="alert" class="alert"></div>
 
-<div class="logo">
-Zyronexa
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>SALDO DISPONIBLE</h3>
+                <div class="value">C${{ usuario.saldo }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>GANANCIAS TOTALES</h3>
+                <div class="value">C${{ usuario.ganancias }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>TOTAL RETIRADO</h3>
+                <div class="value">C${{ usuario.total_retirado }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>TOTAL DEPOSITADO</h3>
+                <div class="value">C${{ usuario.total_depositado }}</div>
+            </div>
+        </div>
+
+        {% if usuario.producto_activo > 0 %}
+        <div class="producto-activo">
+            <h3>✓ Producto Activo: Nivel {{ usuario.producto_activo }}</h3>
+            <p><strong>Valor:</strong> C${{ usuario.valor_producto }}</p>
+            <p><strong>Ganancia Diaria:</strong> C${{ usuario.ganancia_diaria }}</p>
+            <p><strong>Total Generado:</strong> C${{ usuario.total_generado }}</p>
+        </div>
+        {% endif %}
+
+        <div class="acciones-section">
+            <h2 class="section-title">Acciones Rápidas</h2>
+            {% if usuario.producto_activo > 0 %}
+            <button class="btn btn-recompensa" onclick="reclamarRecompensa()">🎁 Reclamar Recompensa Diaria</button>
+            {% endif %}
+            <button class="btn btn-retirar" onclick="abrirModalRetiro()">💸 Solicitar Retiro</button>
+            <button class="btn btn-depositar" onclick="abrirModalDeposito()">💳 Depositar con Tarjeta</button>
+        </div>
+
+        <div class="productos-section">
+            <h2 class="section-title">Productos Disponibles</h2>
+            <div class="productos-grid">
+    <div class="producto-card">
+        <h4>Plan Starter</h4>
+        <div class="precio">C$500</div>
+        <div class="ganancia">Gana C$20/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(1, 500)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan Básico</h4>
+        <div class="precio">C$1,500</div>
+        <div class="ganancia">Gana C$60/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(2, 1500)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan Intermedio</h4>
+        <div class="precio">C$5,000</div>
+        <div class="ganancia">Gana C$200/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(3, 5000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan Avanzado</h4>
+        <div class="precio">C$10,000</div>
+        <div class="ganancia">Gana C$400/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(4, 10000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan Profesional</h4>
+        <div class="precio">C$25,000</div>
+        <div class="ganancia">Gana C$1,000/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(5, 25000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan Empresarial</h4>
+        <div class="precio">C$50,000</div>
+        <div class="ganancia">Gana C$2,000/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(6, 50000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan Premium</h4>
+        <div class="precio">C$100,000</div>
+        <div class="ganancia">Gana C$4,000/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(7, 100000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan VIP</h4>
+        <div class="precio">C$200,000</div>
+        <div class="ganancia">Gana C$8,000/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(8, 200000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan Master</h4>
+        <div class="precio">C$400,000</div>
+        <div class="ganancia">Gana C$16,000/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(9, 400000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
+    <div class="producto-card">
+        <h4>Plan Zyronexa Elite</h4>
+        <div class="precio">C$1,000,000</div>
+        <div class="ganancia">Gana C$40,000/día - 4%</div>
+        <button class="btn" onclick="comprarProducto(10, 1000000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
+            {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
+        </button>
+    </div>
 </div>
 
-<div class="user-box">
-
-<div class="user-name">
-{{ usuario["nombre"] }}
-</div>
-
-<div class="saldo">
-💰 {{ usuario["saldo"] }} NIO
-</div>
-
-</div>
-
-</header>
-
-<div class="container">
-
-<!-- ACERCA -->
-
-<div class="card">
-
-<h2>Acerca de</h2>
-
-<p>
-Zyronexa es una plataforma financiera digital moderna diseñada para administrar productos financieros,
-billetera virtual y crecimiento inteligente de inversiones.
-</p>
-
-</div>
-
-<!-- PRODUCTOS -->
-
-<div class="card">
-
-<h2>Productos de Inversion</h2>
-
-<div class="product-grid">
-
-<div class="producto">
-<h3>Producto 1</h3>
-<p>Inversion: 500 NIO</p>
-<p>Ganancia diaria: 20 NIO</p>
-<button onclick="comprarProducto(1)">
-Comprar
-</button>
-</div>
-
-<div class="producto">
-<h3>Producto 2</h3>
-<p>Inversion: 1000 NIO</p>
-<p>Ganancia diaria: 40 NIO</p>
-<button onclick="comprarProducto(2)">
-Comprar
-</button>
-</div>
-
-<div class="producto">
-<h3>Producto 3</h3>
-<p>Inversion: 1500 NIO</p>
-<p>Ganancia diaria: 60 NIO</p>
-<button onclick="comprarProducto(3)">
-Comprar
-</button>
-</div>
-
-<div class="producto">
-<h3>Producto 4</h3>
-<p>Inversion: 2000 NIO</p>
-<p>Ganancia diaria: 80 NIO</p>
-<button onclick="comprarProducto(4)">
-Comprar
-</button>
-</div>
-
-<div class="producto">
-<h3>Producto 5</h3>
-<p>Inversion: 3000 NIO</p>
-<p>Ganancia diaria: 120 NIO</p>
-<button onclick="comprarProducto(5)">
-Comprar
-</button>
-</div>
-
-<div class="producto">
-<h3>Producto 6</h3>
-<p>Inversion: 5000 NIO</p>
-<p>Ganancia diaria: 200 NIO</p>
-<button onclick="comprarProducto(6)">
-Comprar
-</button>
-</div>
-
-<div class="producto">
-<h3>Producto 7</h3>
-<p>Inversion: 10000 NIO</p>
-<p>Ganancia diaria: 400 NIO</p>
-<button onclick="comprarProducto(7)">
-Comprar
-</button>
-</div>
-
-<div class="producto">
-<h3>Producto 8</h3>
-<p>Inversion: 20000 NIO</p>
-<p>Ganancia diaria: 800 NIO</p>
-<button onclick="comprarProducto(8)">
-Comprar
-</button>
-</div>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<h2>Producto Activo</h2>
-
-{% if usuario["producto_activo"] == 0 %}
-
-<p>No tienes productos activos.</p>
-
-{% else %}
-
-<p>
-Producto #{{ usuario["producto_activo"] }}
-</p>
-
-<p>
-Valor del producto:
-{{ usuario["valor_producto"] }} NIO
-</p>
-
-<p>
-Ganancia diaria:
-{{ usuario["ganancia_diaria"] }} NIO
-</p>
-
-<p>
-Total generado:
-{{ usuario["total_generado"] }} NIO
-</p>
-
-{% endif %}
-
-</div>
-
-<!-- BILLETERA -->
-
-<div class="card">
-
-<h2>Billetera</h2>
-<input
-type="number"
-id="montoRetiro"
-placeholder="Monto a retirar">
-
-<button onclick="retirarLafise()">
-Retirar a LAFISE
-</button>
-    
-<div class="historial-item">
-<span>Saldo LAFISE</span>
-<span>{{ usuario["saldo_lafise"] }} NIO</span>
-</div>
-<button onclick="depositar()">Depositar saldo</button>
-
-
-<script>
-
-async function depositar(){
-
-    let monto = prompt("¿Cuánto deseas depositar?");
-
-
-    if(!monto){
-        return;
-    }
-
-
-    const respuesta = await fetch("/crear_pago",{
-
-        method:"POST",
-
-        headers:{
-            "Content-Type":"application/json"
-        },
-
-        body:JSON.stringify({
-
-            cantidad: monto
-
-        })
-
-    });
-
-
-    const data = await respuesta.json();
-
-
-    if(data.url){
-
-        window.location.href = data.url;
-
-    }else{
-
-        alert(data.error);
-
-    }
-
-}
-
-</script>
-
-<div class="historial-item">
-<span>Ganancias acumuladas</span>
-<span>{{ usuario["ganancias"] }} NIO</span>
-</div>
-
-<div class="historial-item">
-<span>Total retirado</span>
-<span>{{ usuario["total_retirado"] }} NIO</span>
-</div>
-
-</div>
-
-<!-- HISTORIAL -->
-
-<div class="card">
-
-<h2>Historial</h2>
-
-<div id="historialContainer">
-
-<div class="historial">
-+{{ usuario["ganancia_diaria"] }} NIO diarios
-</div>
-
-</div>
-
-</div>
-
-<!-- PERFIL -->
-
-<div class="card perfil">
-
-<h2>Perfil</h2>
-
-<p>Usuario: {{ usuario["nombre"] }}</p>
-
-<p>Telefono: {{ usuario["telefono"] }}</p>
-
-<p>Cuenta LAFISE: {{ usuario["banco"] }}</p>
-
-<p>Estado: Activo</p>
-
-</div>
-<!-- EDITAR PERFIL -->
-
-<div class="card">
-
-<h2>Actualizar Perfil</h2>
-
-
-<input
-type="text"
-id="nuevoNombre"
-placeholder="Nuevo nombre"
-value="{{ usuario['nombre'] }}">
-
-
-<input
-type="text"
-id="nuevoBanco"
-placeholder="Cuenta LAFISE"
-value="{{ usuario['banco'] }}">
-
-
-<button onclick="actualizarPerfil()">
-
-Guardar Cambios
-
-</button>
-
-
-</div>
-</div>
-
-<script>
-
-async function comprarProducto(id){
-
-    alert("Producto " + id + " comprado correctamente");
-
-}
-
-</script>
-<script>
-
-async function comprarProducto(id){
-
-    const respuesta = await fetch(
-        "/comprar_producto",
-        {
-
-            method:"POST",
-
-            headers:{
-                "Content-Type":"application/json"
-            },
-
-            body:JSON.stringify({
-                producto_id:id
-            })
-
+        <div class="historial-section">
+            <h2 class="section-title">Historial de Movimientos</h2>
+            {% if historial %}
+                {% for item in historial %}
+                <div class="historial-item">
+                    <div>
+                        <span class="tipo-{{ item.tipo }}">{{ item.tipo.upper() }}</span>
+                        <p>{{ item.descripcion }}</p>
+                        <small>{{ item.fecha }}</small>
+                    </div>
+                    <div style="font-size: 20px; font-weight: bold;">
+                        C${{ item.monto }}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #999;">No hay movimientos aún</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal Retiro -->
+    <div id="modalRetiro" class="modal">
+        <div class="modal-content">
+            <h2>Solicitar Retiro</h2>
+            <p>Saldo disponible: C${{ usuario.saldo }}</p>
+            <input type="number" id="montoRetiro" placeholder="Monto a retirar" min="100">
+            <div class="modal-buttons">
+                <button class="btn" onclick="solicitarRetiro()">Confirmar</button>
+                <button class="btn" style="background: #ccc;" onclick="cerrarModal('modalRetiro')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Deposito -->
+    <div id="modalDeposito" class="modal">
+        <div class="modal-content">
+            <h2>Depositar con Tarjeta</h2>
+            <p>Monto mínimo: C$100</p>
+            <input type="number" id="montoDeposito" placeholder="Monto en córdobas" min="100">
+            <p style="font-size: 14px; color: #666;">Tasa: 1 USD = C$36</p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="iniciarDeposito()">Pagar con Tarjeta</button>
+                <button class="btn" style="background: #ccc;" onclick="cerrarModal('modalDeposito')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function mostrarAlerta(mensaje, tipo) {
+            const alert = document.getElementById('alert');
+            alert.className = 'alert alert-' + tipo;
+            alert.textContent = mensaje;
+            alert.style.display = 'block';
+            setTimeout(() => alert.style.display = 'none', 5000);
         }
-    );
 
-    const resultado = await respuesta.json();
+        function abrirModalRetiro() {
+            document.getElementById('modalRetiro').style.display = 'flex';
+        }
 
-    alert(
-        resultado.mensaje || resultado.error
-    );
+        function abrirModalDeposito() {
+            document.getElementById('modalDeposito').style.display = 'flex';
+        }
 
-    if(resultado.mensaje){
-        location.reload();
-    }
+        function cerrarModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
 
-}
+        async function comprarProducto(producto_id, valor) {
+            if (!confirm(`¿Confirmas la compra del producto Nivel ${producto_id} por C$${valor}?`)) return;
 
-</script>
+            try {
+                const response = await fetch('/comprar_producto', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({producto_id, valor})
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    mostrarAlerta(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    mostrarAlerta(data.error, 'error');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al procesar la compra', 'error');
+            }
+        }
+
+        async function reclamarRecompensa() {
+            try {
+                const response = await fetch('/reclamar_recompensa', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    mostrarAlerta(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    mostrarAlerta(data.error, 'error');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al reclamar recompensa', 'error');
+            }
+        }
+
+        async function solicitarRetiro() {
+            const monto = document.getElementById('montoRetiro').value;
+            if (!monto || monto < 100) {
+                mostrarAlerta('El monto mínimo es C$100', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/retirar', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({monto: parseInt(monto)})
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    mostrarAlerta(data.message, 'success');
+                    cerrarModal('modalRetiro');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    mostrarAlerta(data.error, 'error');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al solicitar retiro', 'error');
+            }
+        }
+
+        async function iniciarDeposito() {
+            const montoCordobas = document.getElementById('montoDeposito').value;
+            if (!montoCordobas || montoCordobas < 100) {
+                mostrarAlerta('El monto mínimo es C$100', 'error');
+                return;
+            }
+
+            const montoUSD = (montoCordobas / 36).toFixed(2);
+            
+            // Aquí deberías crear una sesión de Stripe Checkout desde tu backend
+            // Por ahora redirigimos a Stripe con los datos
+            mostrarAlerta(`Redirigiendo a Stripe para pagar $${montoUSD} USD...`, 'success');
+            
+            // TODO: Llama a tu endpoint /create-checkout-session y redirige a Stripe
+            // window.location.href = checkout_url;
+            
+            cerrarModal('modalDeposito');
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
 </body>
-
 </html>
