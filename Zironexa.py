@@ -477,14 +477,18 @@ def webhook():
     if event["type"] == "checkout.session.completed":
         session_data = event["data"]["object"]
 
-        # FIX: StripeObject usa atributos, no .get()
-        metadata = session_data.metadata or {}
-        print(f"Metadata: {metadata}")
+        # metadata es StripeObject, usa .atributo
+        metadata = session_data.metadata
+        if not metadata:
+            print("ERROR: Sin metadata")
+            return jsonify({"error": "Sin metadata"}), 400
+            
+        print(f"Metadata: {dict(metadata)}")
 
         try:
             if metadata.get("tipo") == "deposito":
-                telefono = metadata["telefono"]
-                monto = int(metadata["monto_cordobas"])
+                telefono = metadata.telefono  # <- CAMBIO: . en lugar de []
+                monto = int(metadata.monto_cordobas)  # <- CAMBIO: . en lugar de []
 
                 conexion = conectar_db()
                 cursor = conexion.cursor()
@@ -501,17 +505,17 @@ def webhook():
                 conexion.close()
                 print(f"Depósito acreditado: {monto} a {telefono}")
             else:
-                # Validar que existan las keys antes de usarlas
+                # Validar que existan las keys
                 required_keys = ["telefono", "precio_plan", "ganancia_diaria", "saldo_usado", "plan_id"]
-                if not all(k in metadata for k in required_keys):
-                    print(f"ERROR: Metadata incompleta: {metadata}")
+                if not all(hasattr(metadata, k) for k in required_keys):
+                    print(f"ERROR: Metadata incompleta: {dict(metadata)}")
                     return jsonify({"error": "Metadata incompleta"}), 400
 
-                telefono = metadata["telefono"]
-                precio_plan = int(metadata["precio_plan"])
-                ganancia_diaria = int(metadata["ganancia_diaria"])
-                saldo_usado = int(metadata["saldo_usado"])
-                plan_id = int(metadata["plan_id"])
+                telefono = metadata.telefono
+                precio_plan = int(metadata.precio_plan)
+                ganancia_diaria = int(metadata.ganancia_diaria)
+                saldo_usado = int(metadata.saldo_usado)
+                plan_id = int(metadata.plan_id)
                 es_upgrade = metadata.get("es_upgrade") == "true"
 
                 conexion = conectar_db()
@@ -561,10 +565,11 @@ def webhook():
 
         except Exception as e:
             print(f"ERROR en DB: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
     return jsonify({"success": True}), 200
-    
 @app.route("/retirar_propietario", methods=["POST"])
 def retirar_propietario():
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
