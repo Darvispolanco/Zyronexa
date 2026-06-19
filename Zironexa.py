@@ -18,6 +18,7 @@ STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 # Config
 PROPIETARIO_TELEFONO = "84907210"  # Tu número
+PASSWORD_PROPIETARIO = os.getenv("PASSWORD_PROPIETARIO", "123456")  # ← LÍNEA AGREGADA
 TIPO_CAMBIO = 36  # 1 USD = 36 NIO
 
 # Definición de los 10 planes con % escalonado
@@ -45,7 +46,7 @@ def crear_base_datos():
         id SERIAL PRIMARY KEY,
         nombre TEXT NOT NULL,
         telefono TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
+        contrasena TEXT NOT NULL,
         banco TEXT NOT NULL,
         saldo_real INTEGER DEFAULT 0,
         saldo_bono INTEGER DEFAULT 500,
@@ -73,6 +74,16 @@ def crear_base_datos():
     );
     """)
     conexion.commit()
+    
+    # Crear usuario propietario si no existe ← BLOQUE AGREGADO
+    cursor.execute("SELECT id FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
+    if not cursor.fetchone():
+        cursor.execute("""
+            INSERT INTO usuarios (nombre, telefono, contrasena, banco, saldo_real, saldo_bono, es_admin)
+            VALUES (%s, %s, %s, %s, 0, 0, 1)
+        """, ("Admin Zyronexa", PROPIETARIO_TELEFONO, PASSWORD_PROPIETARIO, "LAFISE"))
+        conexion.commit()
+    
     cursor.close()
     conexion.close()
 
@@ -111,11 +122,11 @@ def registro():
 def login():
     datos = request.json
     telefono = datos.get("telefono")
-    password = datos.get("contrasena")
+    contrasena = datos.get("contrasena")
 
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
-    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s AND password = %s", (telefono, contrasena))
+    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s AND contrasena = %s", (telefono, contrasena))
     usuario = cursor.fetchone()
     cursor.close()
     conexion.close()
@@ -134,6 +145,13 @@ def dashboard():
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
     usuario = cursor.fetchone()
+    
+    if not usuario:
+        cursor.close()
+        conexion.close()
+        session.clear()
+        return redirect(url_for("index"))
+    
     session["usuario"] = dict(usuario)
     
     cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 10", (usuario["telefono"],))
