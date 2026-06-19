@@ -35,9 +35,6 @@ PLANES = {
     10: {"nombre": "Plan Zyronexa Elite", "precio": 1000000, "ganancia_diaria": 100000, "porcentaje": 10.0}
 }
 
-def conectar_db():
-    return psycopg2.connect(os.getenv("DATABASE_URL"))
-
 def crear_base_datos():
     conexion = conectar_db()
     cursor = conexion.cursor()
@@ -75,7 +72,19 @@ def crear_base_datos():
     """)
     conexion.commit()
     
-    # Crear usuario propietario si no existe ← BLOQUE AGREGADO
+    # Renombrar columna password a contrasena si existe
+    cursor.execute("""
+        DO $$ 
+        BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns 
+                      WHERE table_name='usuarios' AND column_name='password') THEN
+                ALTER TABLE usuarios RENAME COLUMN password TO contrasena;
+            END IF;
+        END $$;
+    """)
+    conexion.commit()
+    
+    # Crear usuario propietario si no existe
     cursor.execute("SELECT id FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
     if not cursor.fetchone():
         cursor.execute("""
