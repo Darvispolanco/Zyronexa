@@ -3,3 +3,4 @@ gunicorn
 psycopg2-binary
 werkzeug
 stripe
+python-dotenv==1.0.1
