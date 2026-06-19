@@ -85,27 +85,27 @@ def index():
     return render_template("index.html")
 
 @app.route("/registro", methods=["POST"])
-def  registro ( ) :
-datos     = solicitud.json
-    nombre = datos. obtener ( "nombre" )
-    teléfono = datos. obtener ( "teléfono" )
-    contraseña = datos.obtener ( "contraseña " )
-    banco = datos. obtener ( "banco" )
+def registro():
+    datos = request.json
+    nombre = datos.get("nombre")
+    telefono = datos.get("telefono")
+    contrasena = datos.get("contrasena")
+    banco = datos.get("banco")
 
-    conexión = conectar_db ( )
-    cursor = conexion. cursor ( )
-    intentar :
-        cursor. ejecutar ( """
-        INSERTAR EN usuarios (nombre, teléfono, contraseña, banco, saldo_real, saldo_bono)
-        VALORES (%s, %s, %s, %s, 0, 500)
-        """ , ( nombre, teléfono, contraseña, banco ) )
-    conexión.commit ( )​
-        return  jsonify ( { "success" : True , "redirect" : "/dashboard" , "message" : "Registro exitoso. Recibiste C$500 de bono" } )
-    excepto psycopg2. Error de integridad :
-        return  jsonify ( { "éxito" : False , "error" : "Teléfono ya registrado" } ) , 400
-    finalmente :
-        cursor. cerrar ( )
-        conexión. cerrar ( )
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO usuarios (nombre, telefono, contrasena, banco, saldo_real, saldo_bono)
+            VALUES (%s, %s, %s, %s, 0, 500)
+        """, (nombre, telefono, contrasena, banco))
+        conexion.commit()
+        return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso. Recibiste C$500 de bono"})
+    except psycopg2.Error:
+        return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
+    finally:
+        cursor.close()
+        conexion.close()
 
 @ app.route ( "/login" , methods= [ "POST" ] )
 def  login ( ) :
