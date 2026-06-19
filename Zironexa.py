@@ -35,6 +35,9 @@ PLANES = {
     10: {"nombre": "Plan Zyronexa Elite", "precio": 1000000, "ganancia_diaria": 100000, "porcentaje": 10.0}
 }
 
+def conectar_db():
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
+
 def crear_base_datos():
     conexion = conectar_db()
     cursor = conexion.cursor()
