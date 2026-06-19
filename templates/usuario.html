@@ -338,8 +338,10 @@
                     <button class="btn" onclick="comprarProducto({{ plan.precio }}, {{ plan.ganancia_diaria }})">Activar</button>
                     {% elif usuario.producto_activo == pid %}
                     <button class="btn" disabled>Activo</button>
+                    {% elif usuario.valor_producto >= plan.precio %}
+                    <button class="btn" disabled>Plan inferior</button>
                     {% else %}
-                    <button class="btn" disabled>Ya tienes un plan</button>
+                    <button class="btn" onclick="comprarProducto({{ plan.precio }}, {{ plan.ganancia_diaria }})">Mejorar Plan</button>
                     {% endif %}
                 </div>
                 {% endfor %}
