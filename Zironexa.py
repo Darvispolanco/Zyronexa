@@ -477,8 +477,8 @@ def webhook():
     if event["type"] == "checkout.session.completed":
         session_data = event["data"]["object"]
 
-        # FIX: Metadata puede ser None, convertir a dict vacío para evitar AttributeError
-        metadata = session_data.get("metadata") or {}
+        # FIX: StripeObject usa atributos, no .get()
+        metadata = session_data.metadata or {}
         print(f"Metadata: {metadata}")
 
         try:
@@ -564,7 +564,7 @@ def webhook():
             return jsonify({"error": str(e)}), 500
 
     return jsonify({"success": True}), 200
-
+    
 @app.route("/retirar_propietario", methods=["POST"])
 def retirar_propietario():
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
