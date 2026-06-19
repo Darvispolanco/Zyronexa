@@ -1,45 +1,45 @@
-from flask import Flask, render_template, request, jsonify, session
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
 import os
+import stripe
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import stripe
+from dotenv import load_dotenv
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
-STATIC_DIR = os.path.join(BASE_DIR, 'static')
+load_dotenv()
 
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR
-)
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "clave_secreta_123")
 
-# === VARIABLES DE ENTORNO ===
-app.secret_key = os.getenv("SECRET_KEY")
+# Config Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-ENDPOINT_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-TIPO_CAMBIO = 36
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
-PROPIETARIO_TELEFONO = os.getenv("PROPIETARIO_TELEFONO")
-PROPIETARIO_PASSWORD = os.getenv("PROPIETARIO_PASSWORD")
-COMISION_PROPIETARIO = 0.10
+# Config
+PROPIETARIO_TELEFONO = "84907210"  # Tu número
+TIPO_CAMBIO = 36  # 1 USD = 36 NIO
 
-if not all([PROPIETARIO_PASSWORD, app.secret_key, stripe.api_key, ENDPOINT_SECRET]):
-    raise ValueError("Faltan variables de entorno críticas. Revisa Render.")
+# Definición de los 10 planes con % escalonado
+PLANES = {
+    1: {"nombre": "Plan Free", "precio": 500, "ganancia_diaria": 20, "porcentaje": 4.0},
+    2: {"nombre": "Plan Básico", "precio": 1500, "ganancia_diaria": 67, "porcentaje": 4.5},
+    3: {"nombre": "Plan Intermedio", "precio": 5000, "ganancia_diaria": 250, "porcentaje": 5.0},
+    4: {"nombre": "Plan Avanzado", "precio": 10000, "ganancia_diaria": 550, "porcentaje": 5.5},
+    5: {"nombre": "Plan Profesional", "precio": 25000, "ganancia_diaria": 1500, "porcentaje": 6.0},
+    6: {"nombre": "Plan Empresarial", "precio": 50000, "ganancia_diaria": 3250, "porcentaje": 6.5},
+    7: {"nombre": "Plan Premium", "precio": 100000, "ganancia_diaria": 7000, "porcentaje": 7.0},
+    8: {"nombre": "Plan VIP", "precio": 200000, "ganancia_diaria": 15000, "porcentaje": 7.5},
+    9: {"nombre": "Plan Master", "precio": 400000, "ganancia_diaria": 32000, "porcentaje": 8.0},
+    10: {"nombre": "Plan Zyronexa Elite", "precio": 1000000, "ganancia_diaria": 100000, "porcentaje": 10.0}
+}
 
 def conectar_db():
-    database_url = os.getenv("DATABASE_URL")
-    if database_url and database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    return psycopg2.connect(database_url)
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
 
 def crear_base_datos():
     conexion = conectar_db()
     cursor = conexion.cursor()
-
-    # Tabla usuarios
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS usuarios (
         id SERIAL PRIMARY KEY,
@@ -47,11 +47,10 @@ def crear_base_datos():
         telefono TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         banco TEXT NOT NULL,
-        saldo INTEGER DEFAULT 500,
-        ganancias INTEGER DEFAULT 0,
+        saldo_real INTEGER DEFAULT 0,
+        saldo_bono INTEGER DEFAULT 500,
         total_retirado INTEGER DEFAULT 0,
         total_depositado INTEGER DEFAULT 0,
-        productos TEXT DEFAULT '',
         producto_activo INTEGER DEFAULT 0,
         valor_producto INTEGER DEFAULT 0,
         ganancia_diaria INTEGER DEFAULT 0,
@@ -63,8 +62,6 @@ def crear_base_datos():
         stripe_account_id TEXT DEFAULT ''
     );
     """)
-
-    # Tabla historial
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS historial (
         id SERIAL PRIMARY KEY,
@@ -75,356 +72,453 @@ def crear_base_datos():
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
-
-    # MIGRACIÓN: Si la tabla historial ya existía sin columna telefono, la agregamos
-    cursor.execute("""
-    DO $$
-    BEGIN
-        IF NOT EXISTS (
-            SELECT 1 FROM information_schema.columns
-            WHERE table_name='historial' AND column_name='telefono'
-        ) THEN
-            ALTER TABLE historial ADD COLUMN telefono TEXT NOT NULL DEFAULT '';
-        END IF;
-    END $$;
-    """)
-
     conexion.commit()
     cursor.close()
     conexion.close()
-    print("Base de datos verificada y migrada correctamente")
 
-def calcular_ganancia_producto(producto_id):
-    precios = {1: 500, 2: 1000, 3: 1500, 4: 2000, 5: 3000}
-    precio = precios.get(producto_id, 0)
-    return int(precio * 0.04)
-
-def obtener_precio_producto(producto_id):
-    precios = {1: 500, 2: 1000, 3: 1500, 4: 2000, 5: 3000}
-    return precios.get(producto_id, 0)
-
-def crear_o_obtener_propietario(cursor):
-    cursor.execute("SELECT id FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
-    propietario = cursor.fetchone()
-    if not propietario:
-        cursor.execute("""
-        INSERT INTO usuarios (nombre, telefono, password, banco, saldo, es_admin)
-        VALUES ('Propietario', %s, %s, 'Ninguno', 0, 2)
-        """, (PROPIETARIO_TELEFONO, generate_password_hash(PROPIETARIO_PASSWORD)))
-        cursor.execute("SELECT id FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
-        propietario = cursor.fetchone()
-    return propietario[0]
+crear_base_datos()
 
 @app.route("/")
-def inicio():
-    return render_template("index.html")
+def index():
+    if "usuario" in session:
+        return redirect(url_for("dashboard"))
+    return render_template("login.html")
 
 @app.route("/registro", methods=["POST"])
 def registro():
-    try:
-        data = request.json
-        nombre = data.get("nombre")
-        telefono = data.get("telefono")
-        password = data.get("password")
-        banco = data.get("banco", "Ninguno")
-
-        if not nombre or not telefono or not password:
-            return jsonify({"success": False, "error": "Todos los campos son requeridos"}), 400
-
-        conexion = conectar_db()
-        cursor = conexion.cursor()
-        cursor.execute("SELECT id FROM usuarios WHERE telefono = %s", (telefono,))
-        if cursor.fetchone():
-            cursor.close()
-            conexion.close()
-            return jsonify({"success": False, "error": "Este número ya está registrado"}), 400
-
-        password_hash = generate_password_hash(password)
-
-        cursor.execute("""
-        INSERT INTO usuarios (nombre, telefono, password, banco, saldo)
-        VALUES (%s, %s, %s, %s, 500)
-        """, (nombre, telefono, password_hash, banco))
-
-        conexion.commit()
-        cursor.close()
-        conexion.close()
-
-        return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso"})
-
-    except Exception as e:
-        print(f"Error registro: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@app.route("/login", methods=["POST"])
-def login():
-    try:
-        data = request.json
-        telefono = data.get("telefono")
-        password = data.get("password")
-
-        if telefono == PROPIETARIO_TELEFONO and password == PROPIETARIO_PASSWORD:
-            session["usuario"] = {
-                "telefono": PROPIETARIO_TELEFONO,
-                "nombre": "Propietario",
-                "es_admin": 2,
-                "id": 0
-            }
-            return jsonify({"success": True, "redirect": "/propietario"})
-
-        conexion = conectar_db()
-        cursor = conexion.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT * FROM usuarios WHERE telefono = %s", (telefono,))
-        usuario = cursor.fetchone()
-
-        if usuario and check_password_hash(usuario["password"], password):
-            session["usuario"] = {
-                "id": usuario["id"],
-                "telefono": usuario["telefono"],
-                "nombre": usuario["nombre"],
-                "es_admin": usuario["es_admin"]
-            }
-            cursor.close()
-            conexion.close()
-            return jsonify({"success": True, "redirect": "/dashboard"})
-
-        cursor.close()
-        conexion.close()
-        return jsonify({"success": False, "error": "Teléfono o contraseña incorrectos"}), 401
-
-    except Exception as e:
-        print(f"Error login: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@app.route("/dashboard")
-def dashboard():
-    if "usuario" not in session:
-        return render_template("index.html")
-
-    usuario_session = session["usuario"]
-
-    if usuario_session["es_admin"] == 2:
-        return render_template("index.html")
+    data = request.json
+    nombre = data.get("nombre")
+    telefono = data.get("telefono")
+    password = data.get("password")
+    banco = data.get("banco")
 
     conexion = conectar_db()
-    cursor = conexion.cursor(cursor_factory=RealDictCursor)
-
+    cursor = conexion.cursor()
     try:
-        cursor.execute("SELECT * FROM usuarios WHERE id = %s", (usuario_session["id"],))
-        usuario = cursor.fetchone()
-
-        if not usuario:
-            session.clear()
-            return render_template("index.html")
-
-        cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 20", (usuario_session["telefono"],))
-        historial = cursor.fetchall()
-
-    except Exception as e:
-        print(f"Error dashboard query: {e}")
-        usuario = {
-            "nombre": usuario_session["nombre"],
-            "telefono": usuario_session["telefono"],
-            "saldo": 0,
-            "producto_activo": 0,
-            "ganancia_diaria": 0,
-            "total_generado": 0,
-            "total_retirado": 0
-        }
-        historial = []
+        cursor.execute("""
+        INSERT INTO usuarios (nombre, telefono, password, banco, saldo_real, saldo_bono) 
+        VALUES (%s, %s, %s, %s, 0, 500)
+        """, (nombre, telefono, password, banco))
+        conexion.commit()
+        return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso. Recibiste C$500 de bono"})
+    except psycopg2.IntegrityError:
+        return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
     finally:
         cursor.close()
         conexion.close()
 
-    return render_template("usuario.html", usuario=usuario, historial=historial)
-
-@app.route("/propietario")
-def propietario():
-    if "usuario" not in session or session["usuario"]["es_admin"]!= 2:
-        return render_template("index.html")
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    telefono = data.get("telefono")
+    password = data.get("password")
 
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
-
-    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
-    propietario = cursor.fetchone()
-
-    cursor.execute("SELECT * FROM usuarios WHERE es_admin!= 2 ORDER BY fecha_registro DESC")
-    usuarios = cursor.fetchall()
-
-    try:
-        cursor.execute("SELECT * FROM historial ORDER BY fecha DESC LIMIT 50")
-        historial = cursor.fetchall()
-    except:
-        historial = []
-
-    cursor.execute("SELECT COUNT(*) as total FROM usuarios WHERE es_admin!= 2")
-    total_usuarios = cursor.fetchone()["total"]
-
-    cursor.execute("SELECT COUNT(*) as total FROM usuarios WHERE producto_activo > 0")
-    productos_activos = cursor.fetchone()["total"]
-
-    cursor.execute("SELECT COUNT(*) as total FROM usuarios WHERE es_admin = 1")
-    total_admins = cursor.fetchone()["total"]
-
-    try:
-        cursor.execute("SELECT COUNT(*) as total FROM historial WHERE tipo = 'retiro' AND descripcion LIKE '%pendiente%'")
-        retiros_pendientes = cursor.fetchone()["total"]
-    except:
-        retiros_pendientes = 0
-
+    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s AND password = %s", (telefono, password))
+    usuario = cursor.fetchone()
     cursor.close()
     conexion.close()
 
-    return render_template(
-        "propietario.html",
-        propietario=propietario,
-        usuarios=usuarios,
-        historial=historial,
-        total_usuarios=total_usuarios,
-        productos_activos=productos_activos,
-        total_admins=total_admins,
-        retiros_pendientes=retiros_pendientes
-    )
+    if usuario:
+        session["usuario"] = dict(usuario)
+        return jsonify({"success": True, "redirect": "/dashboard"})
+    return jsonify({"success": False, "error": "Credenciales incorrectas"}), 401
 
-@app.route("/comprar_producto", methods=["POST"])
-def comprar_producto():
+@app.route("/dashboard")
+def dashboard():
     if "usuario" not in session:
-        return jsonify({"error": "No autenticado"}), 401
+        return redirect(url_for("index"))
+    
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
+    usuario = cursor.fetchone()
+    session["usuario"] = dict(usuario)
+    
+    cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 10", (usuario["telefono"],))
+    historial = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+    
+    usuario["saldo_total"] = usuario["saldo_real"] + usuario["saldo_bono"]
+    return render_template("usuario.html", usuario=usuario, historial=historial, stripe_key=STRIPE_PUBLISHABLE_KEY, planes=PLANES)
+
+@app.route("/create-deposit-session", methods=["POST"])
+def create_deposit_session():
+    if "usuario" not in session:
+        return jsonify({"error": "No autorizado"}), 401
+
+    data = request.json
+    monto_cordobas = int(data.get("monto"))
+    monto_usd_centavos = int((monto_cordobas / TIPO_CAMBIO) * 100)
+
+    if monto_usd_centavos < 50:
+        return jsonify({"error": "Monto mínimo C$18"}), 400
 
     try:
-        data = request.json
-        producto_id = int(data.get("producto_id"))
-        valor = int(data.get("valor"))
-        usuario_session = session["usuario"]
-
-        conexion = conectar_db()
-        cursor = conexion.cursor()
-
-        cursor.execute("SELECT saldo FROM usuarios WHERE id = %s", (usuario_session["id"],))
-        saldo_actual = cursor.fetchone()[0]
-
-        if saldo_actual < valor:
-            cursor.close()
-            conexion.close()
-            return jsonify({"error": "Saldo insuficiente"}), 400
-
-        ganancia_diaria = calcular_ganancia_producto(producto_id)
-
-        cursor.execute("""
-        UPDATE usuarios
-        SET saldo = saldo - %s, producto_activo = %s, valor_producto = %s, ganancia_diaria = %s
-        WHERE id = %s
-        """, (valor, producto_id, valor, ganancia_diaria, usuario_session["id"]))
-
-        id_propietario = crear_o_obtener_propietario(cursor)
-        cursor.execute("UPDATE usuarios SET saldo = saldo + %s, ganancias = ganancias + %s WHERE id = %s", (valor, valor, id_propietario))
-
-        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (usuario_session["telefono"], valor, f"Compra Plan Nivel {producto_id}"))
-        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'comision', %s, %s)", (PROPIETARIO_TELEFONO, valor, f"Venta Plan Nivel {producto_id} a {usuario_session['telefono']}"))
-
-        conexion.commit()
-        cursor.close()
-        conexion.close()
-
-        return jsonify({"success": True, "message": "Producto comprado exitosamente"})
-
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": "Recarga de saldo Zyronexa"},
+                    "unit_amount": monto_usd_centavos,
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=url_for("deposito_exitoso", _external=True),
+            cancel_url=url_for("deposito_cancelado", _external=True),
+            metadata={
+                "telefono": session["usuario"]["telefono"],
+                "tipo": "deposito",
+                "monto_cordobas": monto_cordobas
+            }
+        )
+        return jsonify({"url": checkout_session.url})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/reclamar_recompensa", methods=["POST"])
-def reclamar_recompensa():
-    if "usuario" not in session:
-        return jsonify({"error": "No autenticado"}), 401
+@app.route("/deposito_exitoso")
+def deposito_exitoso():
+    return render_template("deposito_exitoso.html")
 
-    try:
-        usuario_session = session["usuario"]
-        conexion = conectar_db()
-        cursor = conexion.cursor(cursor_factory=RealDictCursor)
-
-        cursor.execute("SELECT * FROM usuarios WHERE id = %s", (usuario_session["id"],))
-        usuario = cursor.fetchone()
-
-        if usuario["producto_activo"] == 0:
-            cursor.close()
-            conexion.close()
-            return jsonify({"error": "No tienes producto activo"}), 400
-
-        hoy = datetime.now().strftime("%Y-%m-%d")
-        if usuario["ultima_recompensa"] == hoy:
-            cursor.close()
-            conexion.close()
-            return jsonify({"error": "Ya reclamaste tu recompensa hoy"}), 400
-
-        ganancia_usuario = usuario["ganancia_diaria"]
-        comision_propietario = int(ganancia_usuario * COMISION_PROPIETARIO)
-
-        cursor.execute("""
-        UPDATE usuarios
-        SET saldo = saldo + %s, ganancias = ganancias + %s, total_generado = total_generado + %s, ultima_recompensa = %s
-        WHERE id = %s
-        """, (ganancia_usuario, ganancia_usuario, ganancia_usuario, hoy, usuario_session["id"]))
-
-        id_propietario = crear_o_obtener_propietario(cursor)
-        cursor.execute("UPDATE usuarios SET saldo = saldo + %s, ganancias = ganancias + %s WHERE id = %s", (comision_propietario, comision_propietario, id_propietario))
-
-        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'recompensa', %s, 'Recompensa diaria 4%')", (usuario_session["telefono"], ganancia_usuario))
-        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'comision', %s, %s)", (PROPIETARIO_TELEFONO, comision_propietario, f"Comisión 10% de {usuario_session['telefono']}"))
-
-        conexion.commit()
-        cursor.close()
-        conexion.close()
-
-        return jsonify({"success": True, "message": f"Recompensa de C${ganancia_usuario} reclamada"})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+@app.route("/deposito_cancelado")
+def deposito_cancelado():
+    return render_template("deposito_cancelado.html")
 
 @app.route("/retirar", methods=["POST"])
 def retirar():
     if "usuario" not in session:
-        return jsonify({"error": "No autenticado"}), 401
+        return jsonify({"error": "No autorizado"}), 401
+
+    data = request.json
+    monto_cordobas = int(data.get("monto"))
+    
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT saldo_real, telefono FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
+    usuario = cursor.fetchone()
+    
+    if monto_cordobas > usuario["saldo_real"]:
+        cursor.close()
+        conexion.close()
+        return jsonify({"error": "Solo puedes retirar saldo real. El bono no es retirable"}), 400
+    
+    if monto_cordobas < 360:
+        cursor.close()
+        conexion.close()
+        return jsonify({"error": "Monto mínimo de retiro: C$360"}), 400
 
     try:
-        data = request.json
-        monto = int(data.get("monto"))
-        usuario_session = session["usuario"]
-
-        conexion = conectar_db()
-        cursor = conexion.cursor()
-
-        cursor.execute("SELECT saldo FROM usuarios WHERE id = %s", (usuario_session["id"],))
-        saldo_actual = cursor.fetchone()[0]
-
-        if saldo_actual < monto:
-            cursor.close()
-            conexion.close()
-            return jsonify({"error": "Saldo insuficiente"}), 400
-
-        cursor.execute("UPDATE usuarios SET saldo = saldo - %s, total_retirado = total_retirado + %s WHERE id = %s", (monto, monto, usuario_session["id"]))
-        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'retiro', %s, 'Retiro pendiente de aprobación')", (usuario_session["telefono"], monto))
-
+        cursor.execute("""
+        UPDATE usuarios SET 
+            saldo_real = saldo_real - %s,
+            total_retirado = total_retirado + %s
+        WHERE id = %s
+        """, (monto_cordobas, monto_cordobas, session["usuario"]["id"]))
+        
+        cursor.execute("""
+        INSERT INTO historial (telefono, tipo, monto, descripcion)
+        VALUES (%s, 'retiro', %s, 'Solicitud de retiro a tarjeta')
+        """, (usuario["telefono"], monto_cordobas))
+        
         conexion.commit()
+        return jsonify({"success": True, "message": f"Solicitud de retiro por C${monto_cordobas} creada. Se procesará en 1-3 días"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
         cursor.close()
         conexion.close()
 
-        return jsonify({"success": True, "message": "Solicitud de retiro enviada"})
+@app.route("/comprar_plan", methods=["POST"])
+def comprar_plan():
+    if "usuario" not in session:
+        return jsonify({"error": "No autorizado"}), 401
 
+    data = request.json
+    precio_plan = int(data.get("precio"))
+    ganancia_diaria = int(data.get("ganancia_diaria"))
+
+    # Validar que el plan existe
+    plan_valido = None
+    for pid, pdata in PLANES.items():
+        if pdata["precio"] == precio_plan and pdata["ganancia_diaria"] == ganancia_diaria:
+            plan_valido = pid
+            break
+    
+    if not plan_valido:
+        return jsonify({"error": "Plan no válido"}), 400
+
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
+    usuario = cursor.fetchone()
+
+    if usuario["producto_activo"] > 0:
+        cursor.close()
+        conexion.close()
+        return jsonify({"error": "Ya tienes un plan activo"}), 400
+
+    saldo_disponible = usuario["saldo_real"] + usuario["saldo_bono"]
+    
+    if saldo_disponible >= precio_plan:
+        if usuario["saldo_bono"] >= precio_plan:
+            nuevo_bono = usuario["saldo_bono"] - precio_plan
+            nuevo_real = usuario["saldo_real"]
+        else:
+            resto = precio_plan - usuario["saldo_bono"]
+            nuevo_bono = 0
+            nuevo_real = usuario["saldo_real"] - resto
+
+        cursor.execute("""
+        UPDATE usuarios SET 
+            saldo_bono = %s, saldo_real = %s, producto_activo = %s,
+            valor_producto = %s, ganancia_diaria = %s
+        WHERE id = %s
+        """, (nuevo_bono, nuevo_real, plan_valido, precio_plan, ganancia_diaria, usuario["id"]))
+
+        # Tu ganancia: 100% del precio del plan
+        cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (precio_plan, PROPIETARIO_TELEFONO))
+        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (usuario["telefono"], precio_plan, f'Compra {PLANES[plan_valido]["nombre"]}'))
+        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'venta', %s, %s)", (PROPIETARIO_TELEFONO, precio_plan, f'Venta {PLANES[plan_valido]["nombre"]}'))
+        
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        return jsonify({"success": True, "message": "Plan activado para siempre"})
+    else:
+        monto_faltante = precio_plan - saldo_disponible
+        monto_usd = int((monto_faltante / TIPO_CAMBIO) * 100)
+        
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": f'{PLANES[plan_valido]["nombre"]} - C${precio_plan}'},
+                    "unit_amount": monto_usd,
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=url_for("compra_exitosa", _external=True),
+            metadata={
+                "telefono": usuario["telefono"],
+                "precio_plan": precio_plan,
+                "ganancia_diaria": ganancia_diaria,
+                "saldo_usado": saldo_disponible,
+                "plan_id": plan_valido
+            }
+        )
+        cursor.close()
+        conexion.close()
+        return jsonify({"url": checkout_session.url})
+
+@app.route("/compra_exitosa")
+def compra_exitosa():
+    return render_template("compra_exitosa.html")
+
+@app.route("/cobrar_recompensa", methods=["POST"])
+def cobrar_recompensa():
+    if "usuario" not in session:
+        return jsonify({"error": "No autorizado"}), 401
+
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
+    usuario = cursor.fetchone()
+    
+    if usuario["producto_activo"] == 0:
+        cursor.close()
+        conexion.close()
+        return jsonify({"error": "No tienes producto activo"}), 400
+    
+    hoy = datetime.now().strftime('%Y-%m-%d')
+    if usuario["ultima_recompensa"] == hoy:
+        cursor.close()
+        conexion.close()
+        return jsonify({"error": "Ya cobraste hoy. Vuelve mañana"}), 400
+    
+    ganancia_usuario = usuario["ganancia_diaria"]
+    comision_propietario = int(ganancia_usuario * 0.10)  # Tu 10% extra
+    
+    # Usuario cobra 100% completo
+    cursor.execute("""
+    UPDATE usuarios SET 
+        saldo_real = saldo_real + %s,
+        total_generado = total_generado + %s,
+        ultima_recompensa = %s
+    WHERE id = %s
+    """, (ganancia_usuario, ganancia_usuario, hoy, usuario["id"]))
+    
+    # Tu comisión 10% extra
+    cursor.execute("""
+    UPDATE usuarios SET saldo_real = saldo_real + %s 
+    WHERE telefono = %s
+    """, (comision_propietario, PROPIETARIO_TELEFONO))
+    
+    cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'ganancia', %s, 'Ganancia diaria')", (usuario["telefono"], ganancia_usuario))
+    cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'comision', %s, %s)", (PROPIETARIO_TELEFONO, comision_propietario, f'Comisión 10% de {usuario["telefono"]}'))
+    
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    
+    return jsonify({
+        "success": True, 
+        "message": f"Ganaste C${ganancia_usuario}. Puedes cobrar todos los días"
+    })
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    payload = request.data
+    sig_header = request.headers.get("Stripe-Signature")
+    
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
+
+    if event["type"] == "checkout.session.completed":
+        session_data = event["data"]["object"]
+        metadata = session_data["metadata"]
+        
+        if metadata.get("tipo") == "deposito":
+            telefono = metadata["telefono"]
+            monto = int(metadata["monto_cordobas"])
+            
+            conexion = conectar_db()
+            cursor = conexion.cursor()
+            cursor.execute("""
+            UPDATE usuarios SET 
+                saldo_real = saldo_real + %s,
+                total_depositado = total_depositado + %s
+            WHERE telefono = %s
+            """, (monto, monto, telefono))
+            
+            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'deposito', %s, 'Depósito con tarjeta')", (telefono, monto))
+            conexion.commit()
+            cursor.close()
+            conexion.close()
+        else:
+            telefono = metadata["telefono"]
+            precio_plan = int(metadata["precio_plan"])
+            ganancia_diaria = int(metadata["ganancia_diaria"])
+            saldo_usado = int(metadata["saldo_usado"])
+            plan_id = int(metadata["plan_id"])
+            
+            conexion = conectar_db()
+            cursor = conexion.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT saldo_bono, saldo_real FROM usuarios WHERE telefono = %s", (telefono,))
+            user_data = cursor.fetchone()
+            bono_actual = user_data["saldo_bono"]
+            real_actual = user_data["saldo_real"]
+            
+            if bono_actual >= saldo_usado:
+                nuevo_bono = bono_actual - saldo_usado
+                nuevo_real = real_actual
+            else:
+                nuevo_bono = 0
+                nuevo_real = real_actual - (saldo_usado - bono_actual)
+            
+            cursor.execute("""
+            UPDATE usuarios SET 
+                saldo_bono = %s,
+                saldo_real = %s,
+                producto_activo = %s,
+                valor_producto = %s,
+                ganancia_diaria = %s
+            WHERE telefono = %s
+            """, (nuevo_bono, nuevo_real, plan_id, precio_plan, ganancia_diaria, telefono))
+
+            cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (precio_plan, PROPIETARIO_TELEFONO))
+            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (telefono, precio_plan, f'Compra {PLANES[plan_id]["nombre"]}'))
+            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'venta', %s, %s)", (PROPIETARIO_TELEFONO, precio_plan, f'Venta {PLANES[plan_id]["nombre"]}'))
+            
+            conexion.commit()
+            cursor.close()
+            conexion.close()
+
+    return jsonify({"success": True}), 200
+
+@app.route("/retirar_propietario", methods=["POST"])
+def retirar_propietario():
+    if "usuario" not in session or session["usuario"]["telefono"] != PROPIETARIO_TELEFONO:
+        return jsonify({"error": "No autorizado"}), 401
+
+    data = request.json
+    monto_cordobas = int(data.get("monto"))
+    
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT saldo_real FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
+    propietario = cursor.fetchone()
+    
+    if monto_cordobas > propietario["saldo_real"]:
+        cursor.close()
+        conexion.close()
+        return jsonify({"error": "Saldo insuficiente"}), 400
+    
+    cursor.execute("UPDATE usuarios SET saldo_real = saldo_real - %s WHERE telefono = %s", (monto_cordobas, PROPIETARIO_TELEFONO))
+    cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'retiro', %s, 'Retiro propietario')", (PROPIETARIO_TELEFONO, monto_cordobas))
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    
+    return jsonify({"success": True, "message": "Retiro registrado. Haz el Payout manual en Stripe Dashboard"})
+
+@app.route("/propietario")
+def propietario_dashboard():
+    if "usuario" not in session or session["usuario"]["telefono"] != PROPIETARIO_TELEFONO:
+        return redirect(url_for("index"))
+    
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    
+    # Datos del propietario
+    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
+    propietario = cursor.fetchone()
+    
+    # Stats generales
+    cursor.execute("SELECT COUNT(*) as total FROM usuarios WHERE producto_activo > 0")
+    total_usuarios_activos = cursor.fetchone()["total"]
+    
+    cursor.execute("SELECT COALESCE(SUM(valor_producto), 0) as total FROM usuarios WHERE producto_activo > 0")
+    total_ventas = cursor.fetchone()["total"]
+    
+    cursor.execute("SELECT COALESCE(SUM(ganancia_diaria * 0.10), 0) as total FROM usuarios WHERE producto_activo > 0")
+    comisiones_diarias = int(cursor.fetchone()["total"])
+    
+    # Lista de usuarios
+    cursor.execute("SELECT * FROM usuarios WHERE telefono != %s ORDER BY id DESC", (PROPIETARIO_TELEFONO,))
+    usuarios = cursor.fetchall()
+    
+    # Historial solo tuyo
+    cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 20", (PROPIETARIO_TELEFONO,))
+    historial = cursor.fetchall()
+    
+    cursor.close()
+    conexion.close()
+    
+    stats = {
+        "total_ventas": total_ventas,
+        "total_usuarios_activos": total_usuarios_activos,
+        "comisiones_diarias": comisiones_diarias
+    }
+    
+    return render_template("propietario.html", 
+                         propietario=propietario, 
+                         stats=stats, 
+                         usuarios=usuarios, 
+                         historial=historial,
+                         planes=PLANES)
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return render_template("index.html")
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
-    crear_base_datos()
-    app.run(host="0.0.0.0", port=5000, debug=False)@app.route("/logout")
-def logout():
-    session.clear()
-    return render_template("index.html")
-
-if __name__ == "__main__":
-    crear_base_datos()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(debug=True)
