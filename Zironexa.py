@@ -82,47 +82,47 @@ crear_base_datos()
 def index():
     if "usuario" in session:
         return redirect(url_for("dashboard"))
-    return render_template("login.html")
+    return render_template("index.html")
 
 @app.route("/registro", methods=["POST"])
-def registro():
-    data = request.json
-    nombre = data.get("nombre")
-    telefono = data.get("telefono")
-    password = data.get("password")
-    banco = data.get("banco")
+def  registro ( ) :
+datos     = solicitud.json
+    nombre = datos. obtener ( "nombre" )
+    teléfono = datos. obtener ( "teléfono" )
+    contraseña = datos.obtener ( "contraseña " )
+    banco = datos. obtener ( "banco" )
 
-    conexion = conectar_db()
-    cursor = conexion.cursor()
-    try:
-        cursor.execute("""
-        INSERT INTO usuarios (nombre, telefono, password, banco, saldo_real, saldo_bono) 
-        VALUES (%s, %s, %s, %s, 0, 500)
-        """, (nombre, telefono, password, banco))
-        conexion.commit()
-        return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso. Recibiste C$500 de bono"})
-    except psycopg2.IntegrityError:
-        return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
-    finally:
-        cursor.close()
-        conexion.close()
+    conexión = conectar_db ( )
+    cursor = conexion. cursor ( )
+    intentar :
+        cursor. ejecutar ( """
+        INSERTAR EN usuarios (nombre, teléfono, contraseña, banco, saldo_real, saldo_bono)
+        VALORES (%s, %s, %s, %s, 0, 500)
+        """ , ( nombre, teléfono, contraseña, banco ) )
+        conexión.commit ( )​
+        return  jsonify ( { "success" : True , "redirect" : "/dashboard" , "message" : "Registro exitoso. Recibiste C$500 de bono" } )
+    excepto psycopg2. Error de integridad :
+        return  jsonify ( { "éxito" : False , "error" : "Teléfono ya registrado" } ) , 400
+    finalmente :
+        cursor. cerrar ( )
+        conexión. cerrar ( )
 
-@app.route("/login", methods=["POST"])
-def login():
-    data = request.json
-    telefono = data.get("telefono")
-    password = data.get("password")
+@ app.route ( "/login" , methods= [ "POST" ] )
+def  login ( ) :
+datos     = solicitud.json
+    teléfono = datos. obtener ( "teléfono" )
+    contraseña = datos.obtener ( "contraseña " )
 
-    conexion = conectar_db()
-    cursor = conexion.cursor(cursor_factory=RealDictCursor)
-    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s AND password = %s", (telefono, password))
-    usuario = cursor.fetchone()
-    cursor.close()
-    conexion.close()
+    conexión = conectar_db ( )
+    cursor = conexión. cursor ( cursor_factory=RealDictCursor )
+    cursor.execute ( " SELECT * FROM usuarios WHERE telefono = %s AND password = %s" , ( telefono, password ) )
+    usuario = cursor. buscar una persona ( )
+    cursor. cerrar ( )
+    conexión. cerrar ( )
 
-    if usuario:
-        session["usuario"] = dict(usuario)
-        return jsonify({"success": True, "redirect": "/dashboard"})
+    si usuario:
+        sesión [ "usuario" ] = dict ( usuario )
+        return  jsonify ( { "success" : True , "redirect" : "/dashboard" } )
     return jsonify({"success": False, "error": "Credenciales incorrectas"}), 401
 
 @app.route("/dashboard")
