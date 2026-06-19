@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compra Exitosa - Zyronexa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top, #991b1b, #0f172a);
+            z-index: -1;
+        }
+        .container {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px);
+            padding: 50px;
+            border-radius: 25px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+        }
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #facc15;
+            margin-bottom: 15px;
+            font-size: 32px;
+        }
+        p {
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 15px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .info {
+            background: #111827;
+            border-left: 4px solid #facc15;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            border-radius: 8px;
+        }
+        .btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        .btn:hover {
+            background: #b91c1c;
+            transform: scale(1.03);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🎉</div>
+        <h1>¡Plan Activado!</h1>
+        <p>Tu compra fue procesada correctamente por Stripe.</p>
+        <div class="info">
+            <strong>✓ Plan activo para siempre</strong><br>
+            <strong>✓ Cobra tu ganancia diaria todos los días</strong><br>
+            <strong>✓ Sin límite de tiempo</strong><br>
+            <strong>✓ Reclama tu primera recompensa ya</strong>
+        </div>
+        <p>Ve al dashboard y presiona "Reclamar Recompensa Diaria".</p>
+        <a href="/dashboard" class="btn">Ir al Dashboard</a>
+    </div>
+    <script>
+        setTimeout(() => {
+            window.location.href = '/dashboard';
+        }, 3000);
+    </script>
+</body>
+</html>
