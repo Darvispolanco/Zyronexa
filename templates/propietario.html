@@ -118,6 +118,8 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            overflow-x: auto;
+            display: block;
         }
         .tabla-usuarios th {
             background: #2c5364;
@@ -125,10 +127,12 @@
             padding: 12px;
             text-align: left;
             font-size: 14px;
+            white-space: nowrap;
         }
         .tabla-usuarios td {
             padding: 12px;
             border-bottom: 1px solid #e0e0e0;
+            white-space: nowrap;
         }
         .tabla-usuarios tr:hover {
             background: #f5f5f5;
@@ -162,6 +166,7 @@
         .tipo-venta { color: #27ae60; font-weight: bold; }
         .tipo-comision { color: #9b59b6; font-weight: bold; }
         .tipo-retiro { color: #e74c3c; font-weight: bold; }
+        .tipo-deposito { color: #3498db; font-weight: bold; }
         .modal {
             display: none;
             position: fixed;
@@ -241,22 +246,22 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>TU SALDO REAL</h3>
-                <div class="value">C${{ propietario.saldo_real }}</div>
+                <div class="value">C${{ "{:,}".format(propietario.saldo_real) }}</div>
                 <div class="subvalue">✓ Dinero 100% tuyo - Retirable</div>
             </div>
             <div class="stat-card">
                 <h3>TOTAL VENTAS</h3>
-                <div class="value">C${{ stats.total_ventas }}</div>
+                <div class="value">C${{ "{:,}".format(stats.total_ventas) }}</div>
                 <div class="subvalue">{{ stats.total_usuarios_activos }} usuarios con plan</div>
             </div>
             <div class="stat-card">
                 <h3>COMISIONES DIARIAS</h3>
-                <div class="value">C${{ stats.comisiones_diarias }}</div>
+                <div class="value">C${{ "{:,}".format(stats.comisiones_diarias) }}</div>
                 <div class="subvalue">10% extra de ganancias</div>
             </div>
             <div class="stat-card">
                 <h3>TOTAL RETIRADO</h3>
-                <div class="value">C${{ propietario.total_retirado }}</div>
+                <div class="value">C${{ "{:,}".format(propietario.total_retirado) }}</div>
                 <div class="subvalue">Histórico</div>
             </div>
         </div>
@@ -267,7 +272,7 @@
                 <strong>💰 Importante:</strong> Este saldo es dinero real confirmado por Stripe. Puedes retirarlo cuando quieras. Los usuarios no pueden tocarlo.
             </div>
             <button class="btn btn-retirar" onclick="abrirModalRetiro()">
-                💸 RETIRAR MI DINERO - C${{ propietario.saldo_real }}
+                💸 RETIRAR MI DINERO - C${{ "{:,}".format(propietario.saldo_real) }}
             </button>
             <button class="btn" onclick="window.location.href='/dashboard'">
                 👤 Ver Vista de Usuario
@@ -301,10 +306,10 @@
                                 Sin plan
                             {% endif %}
                         </td>
-                        <td>C${{ user.saldo_real }}</td>
-                        <td>C${{ user.saldo_bono }}</td>
-                        <td>C${{ user.ganancia_diaria }}</td>
-                        <td>C${{ user.total_generado }}</td>
+                        <td>C${{ "{:,}".format(user.saldo_real) }}</td>
+                        <td>C${{ "{:,}".format(user.saldo_bono) }}</td>
+                        <td>C${{ "{:,}".format(user.ganancia_diaria) }}</td>
+                        <td>C${{ "{:,}".format(user.total_generado) }}</td>
                         <td>
                             {% if user.producto_activo > 0 %}
                                 <span class="badge-activo">ACTIVO</span>
@@ -329,7 +334,7 @@
                         <small>{{ item.fecha }}</small>
                     </div>
                     <div style="font-size: 20px; font-weight: bold; color: #27ae60;">
-                        +C${{ item.monto }}
+                        +C${{ "{:,}".format(item.monto) }}
                     </div>
                 </div>
                 {% endfor %}
@@ -343,7 +348,7 @@
     <div id="modalRetiro" class="modal">
         <div class="modal-content">
             <h2>Retirar Tu Dinero</h2>
-            <p>Saldo disponible: <strong>C${{ propietario.saldo_real }}</strong></p>
+            <p>Saldo disponible: <strong>C${{ "{:,}".format(propietario.saldo_real) }}</strong></p>
             <div class="info-box">
                 Este retiro se registra en la base de datos. Debes hacer el Payout manual desde tu Dashboard de Stripe a tu cuenta bancaria.
             </div>
