@@ -241,46 +241,65 @@ function volverInicio(){
 }
 
 async function registrar(){
-    const datos = {
-        nombre: document.getElementById("nombre").value,
-        telefono: document.getElementById("telefono").value,
-        password: document.getElementById("password").value,
-        banco: document.getElementById("banco").value
-    };
+    const nombre = document.getElementById("nombre").value.trim();
+    const telefono = document.getElementById("telefono").value.trim();
+    const password = document.getElementById("password").value;
+    const banco = document.getElementById("banco").value.trim();
 
-    const respuesta = await fetch("/registro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(datos)
-    });
+    // Validación en frontend
+    if(!nombre || !telefono || !password || !banco){
+        alert("Todos los campos son obligatorios");
+        return;
+    }
 
-    const resultado = await respuesta.json();
+    const datos = { nombre, telefono, password, banco };
 
-    if(resultado.success){
-        window.location.href = resultado.redirect || resultado.ir_a;
-    } else {
-        alert(resultado.error || "Error al registrarse");
+    try {
+        const respuesta = await fetch("/registro", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datos)
+        });
+
+        const resultado = await respuesta.json();
+
+        if(resultado.success){
+            window.location.href = resultado.redirect;
+        } else {
+            alert(resultado.error || "Error al registrarse");
+        }
+    } catch (error) {
+        alert("Error de conexión con el servidor");
     }
 }
 
 async function iniciarSesion(){
-    const datos = {
-        telefono: document.getElementById("loginTelefono").value,
-        password: document.getElementById("loginPassword").value
-    };
+    const telefono = document.getElementById("loginTelefono").value.trim();
+    const password = document.getElementById("loginPassword").value;
 
-    const respuesta = await fetch("/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(datos)
-    });
+    if(!telefono || !password){
+        alert("Todos los campos son obligatorios");
+        return;
+    }
 
-    const resultado = await respuesta.json();
+    const datos = { telefono, password };
 
-    if(resultado.success){
-        window.location.href = resultado.redirect;
-    } else {
-        alert(resultado.error || "Error al iniciar sesión");
+    try {
+        const respuesta = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datos)
+        });
+
+        const resultado = await respuesta.json();
+
+        if(resultado.success){
+            window.location.href = resultado.redirect;
+        } else {
+            alert(resultado.error || "Error al iniciar sesión");
+        }
+    } catch (error) {
+        alert("Error de conexión con el servidor");
     }
 }
 </script>
@@ -304,33 +323,31 @@ de manera moderna y segura desde cualquier dispositivo.
 </p>
 </section>
 
-<div class="auth-box">
-    <div class="auth-box" id="inicioBox">
-        <h2>Bienvenido a Zyronexa</h2>
-        <p style="text-align:center; opacity:0.8;">
-        Accede o crea una cuenta para comenzar.
-        </p>
-        <button onclick="mostrarRegistro()">Crear Cuenta</button>
-        <button onclick="mostrarLogin()">Iniciar Sesion</button>
-    </div>
+<div id="inicioBox" class="auth-box">
+    <h2>Bienvenido a Zyronexa</h2>
+    <p style="text-align:center; opacity:0.8;">
+    Accede o crea una cuenta para comenzar.
+    </p>
+    <button onclick="mostrarRegistro()">Crear Cuenta</button>
+    <button onclick="mostrarLogin()">Iniciar Sesion</button>
+</div>
 
-    <div class="auth-box" id="registroBox" style="display:none;">
-        <h2>Crear Cuenta</h2>
-        <input type="text" id="nombre" placeholder="Nombre completo">
-        <input type="text" id="telefono" placeholder="Numero de telefono">
-        <input type="password" id="password" placeholder="Contrasena">
-        <input type="text" id="banco" placeholder="Número de cuenta bancaria">
-        <button onclick="registrar()">Registrarse y recibir 500 NIO</button>
-        <button onclick="volverInicio()">Volver</button>
-    </div>
+<div id="registroBox" class="auth-box" style="display:none;">
+    <h2>Crear Cuenta</h2>
+    <input type="text" id="nombre" placeholder="Nombre completo" required>
+    <input type="text" id="telefono" placeholder="Numero de telefono" required>
+    <input type="password" id="password" placeholder="Contrasena" required>
+    <input type="text" id="banco" placeholder="Número de cuenta bancaria" required>
+    <button onclick="registrar()">Registrarse y recibir 500 NIO</button>
+    <button onclick="volverInicio()">Volver</button>
+</div>
 
-    <div class="auth-box" id="loginBox" style="display:none;">
-        <h2>Iniciar Sesion</h2>
-        <input type="text" id="loginTelefono" placeholder="Numero de telefono registrado">
-        <input type="password" id="loginPassword" placeholder="Contrasena">
-        <button onclick="iniciarSesion()">Entrar</button>
-        <button onclick="volverInicio()">Volver</button>
-    </div>
+<div id="loginBox" class="auth-box" style="display:none;">
+    <h2>Iniciar Sesion</h2>
+    <input type="text" id="loginTelefono" placeholder="Numero de telefono registrado" required>
+    <input type="password" id="loginPassword" placeholder="Contrasena" required>
+    <button onclick="iniciarSesion()">Entrar</button>
+    <button onclick="volverInicio()">Volver</button>
 </div>
 
 <section class="features">
