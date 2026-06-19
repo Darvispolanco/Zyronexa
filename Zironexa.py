@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2 import errors # Para capturar UniqueViolation
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
@@ -48,7 +49,6 @@ def crear_base_datos():
         nombre TEXT NOT NULL,
         telefono TEXT UNIQUE NOT NULL,
         contrasena TEXT NOT NULL,
-        banco TEXT NOT NULL,
         saldo_real INTEGER DEFAULT 0,
         saldo_bono INTEGER DEFAULT 500,
         total_retirado INTEGER DEFAULT 0,
@@ -93,15 +93,15 @@ def crear_base_datos():
     usuario_existente = cursor.fetchone()
     if not usuario_existente:
         cursor.execute("""
-            INSERT INTO usuarios (nombre, telefono, contrasena, banco, saldo_real, saldo_bono, es_admin)
-            VALUES (%s, %s, %s, %s, 0, 0, 1)
-        """, ("Admin Zyronexa", PROPIETARIO_TELEFONO, PASSWORD_PROPIETARIO, "LAFISE"))
+            INSERT INTO usuarios (nombre, telefono, contrasena, saldo_real, saldo_bono, es_admin)
+            VALUES (%s, %s, %s, 0, 0, 1)
+        """, ("Admin Zyronexa", PROPIETARIO_TELEFONO, generate_password_hash(PASSWORD_PROPIETARIO)))
         conexion.commit()
     else:
         # Si existe pero la contraseña es diferente, la actualiza
-        if usuario_existente[1]!= PASSWORD_PROPIETARIO:
+        if not check_password_hash(usuario_existente[1], PASSWORD_PROPIETARIO):
             cursor.execute("UPDATE usuarios SET contrasena = %s, es_admin = 1 WHERE telefono = %s",
-                          (PASSWORD_PROPIETARIO, PROPIETARIO_TELEFONO))
+                          (generate_password_hash(PASSWORD_PROPIETARIO), PROPIETARIO_TELEFONO))
             conexion.commit()
 
     cursor.close()
@@ -122,10 +122,9 @@ def registro():
     nombre = datos.get("nombre", "").strip()
     telefono = datos.get("telefono", "").strip()
     contrasena = datos.get("contrasena") or datos.get("password", "")
-    banco = datos.get("banco") or datos.get("bank", "").strip()
 
-    # Validaciones
-    if not all([nombre, telefono, contrasena, banco]):
+    # Validaciones sin banco
+    if not all([nombre, telefono, contrasena]):
         return jsonify({"success": False, "error": "Todos los campos son obligatorios"}), 400
 
     if len(nombre) < 3:
@@ -141,17 +140,16 @@ def registro():
     contrasena_hash = generate_password_hash(contrasena)
 
     conexion = conectar_db()
-    cursor = conexion.cursor()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
     try:
         cursor.execute("""
-            INSERT INTO usuarios (nombre, telefono, contrasena, banco, saldo_real, saldo_bono)
-            VALUES (%s, %s, %s, %s, 0, 500)
-        """, (nombre, telefono, contrasena_hash, banco))
+            INSERT INTO usuarios (nombre, telefono, contrasena, saldo_real, saldo_bono)
+            VALUES (%s, %s, %s, 0, 500) RETURNING *
+        """, (nombre, telefono, contrasena_hash))
+        usuario = cursor.fetchone()
         conexion.commit()
 
         # Auto-login después de registrar
-        cursor.execute("SELECT * FROM usuarios WHERE telefono = %s", (telefono,))
-        usuario = cursor.fetchone()
         session["usuario"] = dict(usuario)
 
         return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso. Recibiste C$500 de bono"})
@@ -160,6 +158,7 @@ def registro():
         return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
     except psycopg2.Error as e:
         conexion.rollback()
+        print("ERROR DB:", str(e))
         return jsonify({"success": False, "error": "Error de base de datos"}), 500
     finally:
         cursor.close()
@@ -187,7 +186,7 @@ def login():
         return jsonify({"success": True, "redirect": "/dashboard"})
 
     return jsonify({"success": False, "error": "Teléfono o contraseña incorrectos"}), 401
-    
+
 @app.route("/dashboard")
 def dashboard():
     if "usuario" not in session:
