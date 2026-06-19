@@ -476,19 +476,18 @@ def webhook():
 
     if event["type"] == "checkout.session.completed":
         session_data = event["data"]["object"]
-
-        # metadata es StripeObject, usa .atributo
         metadata = session_data.metadata
+        
         if not metadata:
             print("ERROR: Sin metadata")
             return jsonify({"error": "Sin metadata"}), 400
             
-        print(f"Metadata: {dict(metadata)}")
+        print(f"Metadata: {metadata.to_dict()}")
 
         try:
             if metadata.get("tipo") == "deposito":
-                telefono = metadata.telefono  # <- CAMBIO: . en lugar de []
-                monto = int(metadata.monto_cordobas)  # <- CAMBIO: . en lugar de []
+                telefono = metadata.telefono
+                monto = int(metadata.monto_cordobas)
 
                 conexion = conectar_db()
                 cursor = conexion.cursor()
@@ -505,10 +504,9 @@ def webhook():
                 conexion.close()
                 print(f"Depósito acreditado: {monto} a {telefono}")
             else:
-                # Validar que existan las keys
                 required_keys = ["telefono", "precio_plan", "ganancia_diaria", "saldo_usado", "plan_id"]
                 if not all(hasattr(metadata, k) for k in required_keys):
-                    print(f"ERROR: Metadata incompleta: {dict(metadata)}")
+                    print(f"ERROR: Metadata incompleta: {metadata.to_dict()}")
                     return jsonify({"error": "Metadata incompleta"}), 400
 
                 telefono = metadata.telefono
