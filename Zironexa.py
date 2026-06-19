@@ -4,9 +4,9 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from psycopg2 import errors # <-- Agregado para capturar UniqueViolation
 from dotenv import load_dotenv
-
+from werkzeug.security import generate_password_hash, check_password_hash
+import re
 load_dotenv()
 
 app = Flask(__name__)
@@ -18,8 +18,8 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 # Config
-PROPIETARIO_TELEFONO = os.getenv("PROPIETARIO_TELEFONO")
-PASSWORD_PROPIETARIO = os.getenv("PASSWORD_PROPIETARIO")
+PROPIETARIO_TELEFONO = "84907210" # Tu número
+PASSWORD_PROPIETARIO = os.getenv("PASSWORD_PROPIETARIO", "123456")
 TIPO_CAMBIO = 36 # 1 USD = 36 NIO
 
 # Definición de los 10 planes con % escalonado
@@ -117,17 +117,28 @@ def index():
 
 @app.route("/registro", methods=["POST"])
 def registro():
-    # Acepta JSON o form-data y normaliza nombres
     datos = request.get_json(silent=True) or request.form
 
     nombre = datos.get("nombre", "").strip()
     telefono = datos.get("telefono", "").strip()
     contrasena = datos.get("contrasena") or datos.get("password", "")
-    banco = datos.get("banco") or datos.get("bank", "")
+    banco = datos.get("banco") or datos.get("bank", "").strip()
 
-    # Validar campos vacíos
+    # Validaciones
     if not all([nombre, telefono, contrasena, banco]):
         return jsonify({"success": False, "error": "Todos los campos son obligatorios"}), 400
+
+    if len(nombre) < 3:
+        return jsonify({"success": False, "error": "El nombre debe tener al menos 3 caracteres"}), 400
+
+    if not re.match(r'^\d{8}$', telefono):
+        return jsonify({"success": False, "error": "El teléfono debe tener 8 dígitos"}), 400
+
+    if len(contrasena) < 6:
+        return jsonify({"success": False, "error": "La contraseña debe tener al menos 6 caracteres"}), 400
+
+    # Hashear contraseña
+    contrasena_hash = generate_password_hash(contrasena)
 
     conexion = conectar_db()
     cursor = conexion.cursor()
@@ -135,37 +146,48 @@ def registro():
         cursor.execute("""
             INSERT INTO usuarios (nombre, telefono, contrasena, banco, saldo_real, saldo_bono)
             VALUES (%s, %s, %s, %s, 0, 500)
-        """, (nombre, telefono, contrasena, banco))
+        """, (nombre, telefono, contrasena_hash, banco))
         conexion.commit()
+
+        # Auto-login después de registrar
+        cursor.execute("SELECT * FROM usuarios WHERE telefono = %s", (telefono,))
+        usuario = cursor.fetchone()
+        session["usuario"] = dict(usuario)
+
         return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso. Recibiste C$500 de bono"})
-    except errors.UniqueViolation: # Solo para teléfono duplicado
+    except errors.UniqueViolation:
         conexion.rollback()
         return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
-    except psycopg2.Error as e: # Otros errores de DB
+    except psycopg2.Error as e:
         conexion.rollback()
-        return jsonify({"success": False, "error": f"Error de base de datos: {str(e)}"}), 500
+        return jsonify({"success": False, "error": "Error de base de datos"}), 500
     finally:
         cursor.close()
         conexion.close()
 
 @app.route("/login", methods=["POST"])
 def login():
-    datos = request.json
-    telefono = datos.get("telefono")
-    contrasena = datos.get("contrasena")
+    datos = request.get_json(silent=True) or request.form
+    telefono = datos.get("telefono", "").strip()
+    contrasena = datos.get("password") or datos.get("contrasena", "")
+
+    if not telefono or not contrasena:
+        return jsonify({"success": False, "error": "Todos los campos son obligatorios"}), 400
 
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
-    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s AND contrasena = %s", (telefono, contrasena))
+    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s", (telefono,))
     usuario = cursor.fetchone()
     cursor.close()
     conexion.close()
 
-    if usuario:
+    # Verificar que existe y la contraseña coincide
+    if usuario and check_password_hash(usuario["contrasena"], contrasena):
         session["usuario"] = dict(usuario)
         return jsonify({"success": True, "redirect": "/dashboard"})
-    return jsonify({"success": False, "error": "Credenciales incorrectas"}), 401
 
+    return jsonify({"success": False, "error": "Teléfono o contraseña incorrectos"}), 401
+    
 @app.route("/dashboard")
 def dashboard():
     if "usuario" not in session:
