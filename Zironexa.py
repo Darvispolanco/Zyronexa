@@ -99,7 +99,7 @@ datos     = solicitud.json
         INSERTAR EN usuarios (nombre, teléfono, contraseña, banco, saldo_real, saldo_bono)
         VALORES (%s, %s, %s, %s, 0, 500)
         """ , ( nombre, teléfono, contraseña, banco ) )
-        conexión.commit ( )​
+    conexión.commit ( )​
         return  jsonify ( { "success" : True , "redirect" : "/dashboard" , "message" : "Registro exitoso. Recibiste C$500 de bono" } )
     excepto psycopg2. Error de integridad :
         return  jsonify ( { "éxito" : False , "error" : "Teléfono ya registrado" } ) , 400
