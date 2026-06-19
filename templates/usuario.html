@@ -99,6 +99,10 @@
             border-color: #667eea;
             transform: translateY(-5px);
         }
+        .producto-card.activo {
+            background: #e8f5e9;
+            border-color: #2ecc71;
+        }
         .producto-card .badge-vip {
             position: absolute;
             top: -10px;
@@ -286,6 +290,7 @@
                     <span class="badge badge-real">Real: C${{ usuario.saldo_real }}</span>
                     <span class="badge badge-bono">Bono: C${{ usuario.saldo_bono }}</span>
                 </div>
+            </div>
             <div class="stat-card">
                 <h3>GANANCIAS TOTALES</h3>
                 <div class="value">C${{ usuario.total_generado }}</div>
@@ -302,7 +307,7 @@
 
         {% if usuario.producto_activo > 0 %}
         <div class="producto-activo">
-            <h3>✓ Producto Activo</h3>
+            <h3>✓ Producto Activo: {{ planes[usuario.producto_activo].nombre }}</h3>
             <p><strong>Valor:</strong> C${{ usuario.valor_producto }}</p>
             <p><strong>Ganancia Diaria:</strong> C${{ usuario.ganancia_diaria }}</p>
             <p><strong>Total Generado:</strong> C${{ usuario.total_generado }}</p>
@@ -320,100 +325,24 @@
         </div>
 
         <div class="productos-section">
-            <h2 class="section-title">Productos Disponibles - Sin límite de tiempo</h2>
+            <h2 class="section-title">Planes de Inversión - Sin límite de tiempo</h2>
             <div class="productos-grid">
-                <div class="producto-card">
-                    <h4>Plan Free</h4>
-                    <div class="precio">C$500</div>
-                    <div class="ganancia">Gana C$20/día</div>
-                    <div class="porcentaje">4% diario</div>
-                    <button class="btn" onclick="comprarProducto(500, 20)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
+                {% for pid, plan in planes.items() %}
+                <div class="producto-card {% if usuario.producto_activo == pid %}activo{% endif %}">
+                    {% if pid >= 9 %}<div class="badge-vip">{% if pid == 10 %}ELITE{% else %}RECOMENDADO{% endif %}</div>{% endif %}
+                    <h4>{{ plan.nombre }}</h4>
+                    <div class="precio">C${{ "{:,}".format(plan.precio) }}</div>
+                    <div class="ganancia">Gana C${{ "{:,}".format(plan.ganancia_diaria) }}/día</div>
+                    <div class="porcentaje">{{ plan.porcentaje }}% diario</div>
+                    {% if usuario.producto_activo == 0 %}
+                    <button class="btn" onclick="comprarProducto({{ plan.precio }}, {{ plan.ganancia_diaria }})">Activar</button>
+                    {% elif usuario.producto_activo == pid %}
+                    <button class="btn" disabled>Activo</button>
+                    {% else %}
+                    <button class="btn" disabled>Ya tienes un plan</button>
+                    {% endif %}
                 </div>
-                <div class="producto-card">
-                    <h4>Plan Básico</h4>
-                    <div class="precio">C$1,500</div>
-                    <div class="ganancia">Gana C$67/día</div>
-                    <div class="porcentaje">4.5% diario</div>
-                    <button class="btn" onclick="comprarProducto(1500, 67)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
-                <div class="producto-card">
-                    <h4>Plan Intermedio</h4>
-                    <div class="precio">C$5,000</div>
-                    <div class="ganancia">Gana C$250/día</div>
-                    <div class="porcentaje">5% diario</div>
-                    <button class="btn" onclick="comprarProducto(5000, 250)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
-                <div class="producto-card">
-                    <h4>Plan Avanzado</h4>
-                    <div class="precio">C$10,000</div>
-                    <div class="ganancia">Gana C$550/día</div>
-                    <div class="porcentaje">5.5% diario</div>
-                    <button class="btn" onclick="comprarProducto(10000, 550)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
-                <div class="producto-card">
-                    <h4>Plan Profesional</h4>
-                    <div class="precio">C$25,000</div>
-                    <div class="ganancia">Gana C$1,500/día</div>
-                    <div class="porcentaje">6% diario</div>
-                    <button class="btn" onclick="comprarProducto(25000, 1500)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
-                <div class="producto-card">
-                    <h4>Plan Empresarial</h4>
-                    <div class="precio">C$50,000</div>
-                    <div class="ganancia">Gana C$3,250/día</div>
-                    <div class="porcentaje">6.5% diario</div>
-                    <button class="btn" onclick="comprarProducto(50000, 3250)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
-                <div class="producto-card">
-                    <h4>Plan Premium</h4>
-                    <div class="precio">C$100,000</div>
-                    <div class="ganancia">Gana C$7,000/día</div>
-                    <div class="porcentaje">7% diario</div>
-                    <button class="btn" onclick="comprarProducto(100000, 7000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
-                <div class="producto-card">
-                    <h4>Plan VIP</h4>
-                    <div class="precio">C$200,000</div>
-                    <div class="ganancia">Gana C$15,000/día</div>
-                    <div class="porcentaje">7.5% diario</div>
-                    <button class="btn" onclick="comprarProducto(200000, 15000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
-                <div class="producto-card">
-                    <div class="badge-vip">RECOMENDADO</div>
-                    <h4>Plan Master</h4>
-                    <div class="precio">C$400,000</div>
-                    <div class="ganancia">Gana C$32,000/día</div>
-                    <div class="porcentaje">8% diario</div>
-                    <button class="btn" onclick="comprarProducto(400000, 32000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
-                <div class="producto-card">
-                    <div class="badge-vip">ELITE</div>
-                    <h4>Plan Zyronexa Elite</h4>
-                    <div class="precio">C$1,000,000</div>
-                    <div class="ganancia">Gana C$100,000/día</div>
-                    <div class="porcentaje">10% diario</div>
-                    <button class="btn" onclick="comprarProducto(1000000, 100000)" {% if usuario.producto_activo > 0 %}disabled{% endif %}>
-                        {% if usuario.producto_activo > 0 %}Ya tienes producto{% else %}Comprar{% endif %}
-                    </button>
-                </div>
+                {% endfor %}
             </div>
         </div>
 
@@ -516,80 +445,63 @@
 
         async function reclamarRecompensa() {
             try {
-                const response = await fetch('/cobrar_recompensa', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
+                const response = await fetch('/cobrar_recompensa', {method:'POST'});
                 const data = await response.json();
-                
-                if (data.success) {
-                    mostrarAlerta(data.message, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    mostrarAlerta(data.error, 'error');
-                }
-            } catch (error) {
-                mostrarAlerta('Error al reclamar recompensa', 'error');
+                mostrarAlerta(data.message || data.error, data.success ? 'success' : 'error');
+                if(data.success) setTimeout(() => location.reload(), 1500);
+            } catch (e) {
+                mostrarAlerta('Error de conexión', 'error');
             }
         }
 
         async function solicitarRetiro() {
             const monto = document.getElementById('montoRetiro').value;
-            if (!monto || monto < 360) {
-                mostrarAlerta('El monto mínimo es C$360', 'error');
+            if(!monto || monto < 360){
+                mostrarAlerta('Monto mínimo de retiro: C$360', 'error');
                 return;
             }
-
-            try {
-                const response = await fetch('/retirar', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({monto: parseInt(monto)})
+            
+            try{
+                const res = await fetch('/retirar', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({monto:parseInt(monto)})
                 });
-                const data = await response.json();
-                
-                if (data.success) {
-                    mostrarAlerta(data.message, 'success');
+                const data = await res.json();
+                mostrarAlerta(data.message || data.error, data.success ? 'success' : 'error');
+                if(data.success) {
                     cerrarModal('modalRetiro');
                     setTimeout(() => location.reload(), 1500);
-                } else {
-                    mostrarAlerta(data.error, 'error');
                 }
-            } catch (error) {
-                mostrarAlerta('Error al solicitar retiro', 'error');
+            }catch(e){
+                mostrarAlerta('Error de conexión', 'error');
             }
         }
 
         async function iniciarDeposito() {
-            const montoCordobas = document.getElementById('montoDeposito').value;
-            if (!montoCordobas || montoCordobas < 18) {
-                mostrarAlerta('El monto mínimo es C$18', 'error');
+            const monto = document.getElementById('montoDeposito').value;
+            if(!monto || monto < 18){
+                mostrarAlerta('Monto mínimo C$18', 'error');
                 return;
             }
-
-            try {
-                const response = await fetch('/create-deposit-session', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({monto: parseInt(montoCordobas)})
+            
+            try{
+                const res = await fetch('/create-deposit-session', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({monto:parseInt(monto)})
                 });
-                const data = await response.json();
-                
-                if (data.url) {
+                const data = await res.json();
+                if(data.url){
                     window.location.href = data.url;
-                } else {
+                }else{
                     mostrarAlerta(data.error || 'Error al crear sesión', 'error');
                 }
-            } catch (error) {
-                mostrarAlerta('Error al iniciar depósito', 'error');
-            }
-        }
-
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
+            }catch(e){
+                mostrarAlerta('Error de conexión', 'error');
             }
         }
     </script>
+
 </body>
 </html>
