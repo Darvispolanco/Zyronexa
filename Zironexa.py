@@ -17,10 +17,8 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 # Config
-PROPIETARIO_TELEFONO = "84907210" # Tu número
+PROPIETARIO_TELEFONO = os.getenv("PROPIETARIO_TELEFONO")
 PASSWORD_PROPIETARIO = os.getenv("PASSWORD_PROPIETARIO")
-if not PASSWORD_PROPIETARIO:
-    raise ValueError("Falta PASSWORD_PROPIETARIO en las variables de entorno")
 TIPO_CAMBIO = 36 # 1 USD = 36 NIO
 
 # Definición de los 10 planes con % escalonado
