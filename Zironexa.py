@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2 import errors # <-- Agregado para capturar UniqueViolation
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -116,11 +117,13 @@ def index():
 
 @app.route("/registro", methods=["POST"])
 def registro():
-    datos = request.json
-    nombre = datos.get("nombre")
-    telefono = datos.get("telefono")
-    contrasena = datos.get("contrasena")
-    banco = datos.get("banco")
+    # Acepta JSON o form-data y normaliza nombres
+    datos = request.get_json(silent=True) or request.form
+
+    nombre = datos.get("nombre", "").strip()
+    telefono = datos.get("telefono", "").strip()
+    contrasena = datos.get("contrasena") or datos.get("password", "")
+    banco = datos.get("banco") or datos.get("bank", "")
 
     # Validar campos vacíos
     if not all([nombre, telefono, contrasena, banco]):
@@ -135,10 +138,10 @@ def registro():
         """, (nombre, telefono, contrasena, banco))
         conexion.commit()
         return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso. Recibiste C$500 de bono"})
-    except psycopg2.errors.UniqueViolation:  # Solo para teléfono duplicado
+    except errors.UniqueViolation: # Solo para teléfono duplicado
         conexion.rollback()
         return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
-    except psycopg2.Error as e:  # Otros errores
+    except psycopg2.Error as e: # Otros errores de DB
         conexion.rollback()
         return jsonify({"success": False, "error": f"Error de base de datos: {str(e)}"}), 500
     finally:
