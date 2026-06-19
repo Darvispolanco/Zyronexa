@@ -107,22 +107,22 @@ def registro():
         cursor.close()
         conexion.close()
 
-@ app.route ( "/login" , methods= [ "POST" ] )
-def  login ( ) :
-datos     = solicitud.json
-    teléfono = datos. obtener ( "teléfono" )
-    contraseña = datos.obtener ( "contraseña " )
+@app.route("/login", methods=["POST"])
+def login():
+    datos = request.json
+    telefono = datos.get("telefono")
+    password = datos.get("contrasena")
 
-    conexión = conectar_db ( )
-    cursor = conexión. cursor ( cursor_factory=RealDictCursor )
-    cursor.execute ( " SELECT * FROM usuarios WHERE telefono = %s AND password = %s" , ( telefono, password ) )
-    usuario = cursor. buscar una persona ( )
-    cursor. cerrar ( )
-    conexión. cerrar ( )
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT * FROM usuarios WHERE telefono = %s AND password = %s", (telefono, contrasena))
+    usuario = cursor.fetchone()
+    cursor.close()
+    conexion.close()
 
-    si usuario:
-        sesión [ "usuario" ] = dict ( usuario )
-        return  jsonify ( { "success" : True , "redirect" : "/dashboard" } )
+    if usuario:
+        session["usuario"] = dict(usuario)
+        return jsonify({"success": True, "redirect": "/dashboard"})
     return jsonify({"success": False, "error": "Credenciales incorrectas"}), 401
 
 @app.route("/dashboard")
