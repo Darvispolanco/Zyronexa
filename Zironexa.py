@@ -458,77 +458,110 @@ def webhook():
     payload = request.data
     sig_header = request.headers.get("Stripe-Signature")
 
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+    if not webhook_secret:
+        print("ERROR: STRIPE_WEBHOOK_SECRET no configurado")
+        return jsonify({"error": "Webhook secret no configurado"}), 500
+
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+    except ValueError as e:
+        print(f"ERROR: Payload inválido: {e}")
+        return jsonify({"error": "Payload inválido"}), 400
+    except stripe.error.SignatureVerificationError as e:
+        print(f"ERROR: Firma inválida: {e}")
+        return jsonify({"error": "Firma inválida"}), 400
+
+    print(f"Evento recibido: {event['type']}")
 
     if event["type"] == "checkout.session.completed":
         session_data = event["data"]["object"]
-        metadata = session_data["metadata"]
 
-        if metadata.get("tipo") == "deposito":
-            telefono = metadata["telefono"]
-            monto = int(metadata["monto_cordobas"])
+        # FIX: Metadata puede ser None, convertir a dict vacío para evitar AttributeError
+        metadata = session_data.get("metadata") or {}
+        print(f"Metadata: {metadata}")
 
-            conexion = conectar_db()
-            cursor = conexion.cursor()
-            cursor.execute("""
-            UPDATE usuarios SET
-                saldo_real = saldo_real + %s,
-                total_depositado = total_depositado + %s
-            WHERE telefono = %s
-            """, (monto, monto, telefono))
+        try:
+            if metadata.get("tipo") == "deposito":
+                telefono = metadata["telefono"]
+                monto = int(metadata["monto_cordobas"])
 
-            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'deposito', %s, 'Depósito con tarjeta')", (telefono, monto))
-            conexion.commit()
-            cursor.close()
-            conexion.close()
-        else:
-            telefono = metadata["telefono"]
-            precio_plan = int(metadata["precio_plan"])
-            ganancia_diaria = int(metadata["ganancia_diaria"])
-            saldo_usado = int(metadata["saldo_usado"])
-            plan_id = int(metadata["plan_id"])
-            es_upgrade = metadata.get("es_upgrade") == "true"
+                conexion = conectar_db()
+                cursor = conexion.cursor()
+                cursor.execute("""
+                UPDATE usuarios SET
+                    saldo_real = saldo_real + %s,
+                    total_depositado = total_depositado + %s
+                WHERE telefono = %s
+                """, (monto, monto, telefono))
 
-            conexion = conectar_db()
-            cursor = conexion.cursor(cursor_factory=RealDictCursor)
-            cursor.execute("SELECT saldo_bono, saldo_real, producto_activo, valor_producto FROM usuarios WHERE telefono = %s", (telefono,))
-            user_data = cursor.fetchone()
-
-            if es_upgrade:
-                precio_a_pagar = precio_plan - user_data["valor_producto"]
+                cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'deposito', %s, 'Depósito con tarjeta')", (telefono, monto))
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+                print(f"Depósito acreditado: {monto} a {telefono}")
             else:
-                precio_a_pagar = precio_plan
+                # Validar que existan las keys antes de usarlas
+                required_keys = ["telefono", "precio_plan", "ganancia_diaria", "saldo_usado", "plan_id"]
+                if not all(k in metadata for k in required_keys):
+                    print(f"ERROR: Metadata incompleta: {metadata}")
+                    return jsonify({"error": "Metadata incompleta"}), 400
 
-            if user_data["saldo_bono"] >= saldo_usado:
-                nuevo_bono = user_data["saldo_bono"] - saldo_usado
-                nuevo_real = user_data["saldo_real"]
-            else:
-                nuevo_bono = 0
-                nuevo_real = user_data["saldo_real"] - (saldo_usado - user_data["saldo_bono"])
+                telefono = metadata["telefono"]
+                precio_plan = int(metadata["precio_plan"])
+                ganancia_diaria = int(metadata["ganancia_diaria"])
+                saldo_usado = int(metadata["saldo_usado"])
+                plan_id = int(metadata["plan_id"])
+                es_upgrade = metadata.get("es_upgrade") == "true"
 
-            cursor.execute("""
-            UPDATE usuarios SET
-                saldo_bono = %s,
-                saldo_real = %s,
-                producto_activo = %s,
-                valor_producto = %s,
-                ganancia_diaria = %s
-            WHERE telefono = %s
-            """, (nuevo_bono, nuevo_real, plan_id, precio_plan, ganancia_diaria, telefono))
+                conexion = conectar_db()
+                cursor = conexion.cursor(cursor_factory=RealDictCursor)
+                cursor.execute("SELECT saldo_bono, saldo_real, valor_producto FROM usuarios WHERE telefono = %s", (telefono,))
+                user_data = cursor.fetchone()
 
-            ganancia_propietario = precio_a_pagar if es_upgrade else precio_plan
-            mensaje = f'Mejora a {PLANES[plan_id]["nombre"]}' if es_upgrade else f'Compra {PLANES[plan_id]["nombre"]}'
+                if not user_data:
+                    print(f"ERROR: Usuario {telefono} no encontrado")
+                    cursor.close()
+                    conexion.close()
+                    return jsonify({"error": "Usuario no encontrado"}), 400
 
-            cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (ganancia_propietario, PROPIETARIO_TELEFONO))
-            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (telefono, precio_a_pagar, mensaje))
-            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'venta', %s, %s)", (PROPIETARIO_TELEFONO, ganancia_propietario, mensaje))
+                if es_upgrade:
+                    precio_a_pagar = precio_plan - user_data["valor_producto"]
+                else:
+                    precio_a_pagar = precio_plan
 
-            conexion.commit()
-            cursor.close()
-            conexion.close()
+                if user_data["saldo_bono"] >= saldo_usado:
+                    nuevo_bono = user_data["saldo_bono"] - saldo_usado
+                    nuevo_real = user_data["saldo_real"]
+                else:
+                    nuevo_bono = 0
+                    nuevo_real = user_data["saldo_real"] - (saldo_usado - user_data["saldo_bono"])
+
+                cursor.execute("""
+                UPDATE usuarios SET
+                    saldo_bono = %s,
+                    saldo_real = %s,
+                    producto_activo = %s,
+                    valor_producto = %s,
+                    ganancia_diaria = %s
+                WHERE telefono = %s
+                """, (nuevo_bono, nuevo_real, plan_id, precio_plan, ganancia_diaria, telefono))
+
+                ganancia_propietario = precio_a_pagar if es_upgrade else precio_plan
+                mensaje = f'Mejora a {PLANES[plan_id]["nombre"]}' if es_upgrade else f'Compra {PLANES[plan_id]["nombre"]}'
+
+                cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (ganancia_propietario, PROPIETARIO_TELEFONO))
+                cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (telefono, precio_a_pagar, mensaje))
+                cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'venta', %s, %s)", (PROPIETARIO_TELEFONO, ganancia_propietario, mensaje))
+
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+                print(f"Plan acreditado: {plan_id} a {telefono}")
+
+        except Exception as e:
+            print(f"ERROR en DB: {str(e)}")
+            return jsonify({"error": str(e)}), 500
 
     return jsonify({"success": True}), 200
 
