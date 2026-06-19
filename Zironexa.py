@@ -476,18 +476,21 @@ def webhook():
 
     if event["type"] == "checkout.session.completed":
         session_data = event["data"]["object"]
-        metadata = session_data.metadata
+        
+        # FIX: Convierte StripeObject a dict para poder usar .get()
+        metadata = session_data.metadata.to_dict() if session_data.metadata else {}
         
         if not metadata:
             print("ERROR: Sin metadata")
             return jsonify({"error": "Sin metadata"}), 400
             
-        print(f"Metadata: {metadata.to_dict()}")
+        print(f"Metadata: {metadata}")
 
         try:
+            # Ahora metadata es dict normal, .get() sí funciona
             if metadata.get("tipo") == "deposito":
-                telefono = metadata.telefono
-                monto = int(metadata.monto_cordobas)
+                telefono = metadata["telefono"]
+                monto = int(metadata["monto_cordobas"])
 
                 conexion = conectar_db()
                 cursor = conexion.cursor()
@@ -505,15 +508,15 @@ def webhook():
                 print(f"Depósito acreditado: {monto} a {telefono}")
             else:
                 required_keys = ["telefono", "precio_plan", "ganancia_diaria", "saldo_usado", "plan_id"]
-                if not all(hasattr(metadata, k) for k in required_keys):
-                    print(f"ERROR: Metadata incompleta: {metadata.to_dict()}")
+                if not all(k in metadata for k in required_keys):
+                    print(f"ERROR: Metadata incompleta: {metadata}")
                     return jsonify({"error": "Metadata incompleta"}), 400
 
-                telefono = metadata.telefono
-                precio_plan = int(metadata.precio_plan)
-                ganancia_diaria = int(metadata.ganancia_diaria)
-                saldo_usado = int(metadata.saldo_usado)
-                plan_id = int(metadata.plan_id)
+                telefono = metadata["telefono"]
+                precio_plan = int(metadata["precio_plan"])
+                ganancia_diaria = int(metadata["ganancia_diaria"])
+                saldo_usado = int(metadata["saldo_usado"])
+                plan_id = int(metadata["plan_id"])
                 es_upgrade = metadata.get("es_upgrade") == "true"
 
                 conexion = conectar_db()
