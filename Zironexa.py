@@ -122,6 +122,10 @@ def registro():
     contrasena = datos.get("contrasena")
     banco = datos.get("banco")
 
+    # Validar campos vacíos
+    if not all([nombre, telefono, contrasena, banco]):
+        return jsonify({"success": False, "error": "Todos los campos son obligatorios"}), 400
+
     conexion = conectar_db()
     cursor = conexion.cursor()
     try:
@@ -131,8 +135,12 @@ def registro():
         """, (nombre, telefono, contrasena, banco))
         conexion.commit()
         return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso. Recibiste C$500 de bono"})
-    except psycopg2.Error:
+    except psycopg2.errors.UniqueViolation:  # Solo para teléfono duplicado
+        conexion.rollback()
         return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
+    except psycopg2.Error as e:  # Otros errores
+        conexion.rollback()
+        return jsonify({"success": False, "error": f"Error de base de datos: {str(e)}"}), 500
     finally:
         cursor.close()
         conexion.close()
