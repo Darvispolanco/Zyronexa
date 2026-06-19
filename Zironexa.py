@@ -325,19 +325,30 @@ def comprar_plan():
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
     usuario = cursor.fetchone()
 
-    if usuario["producto_activo"] > 0:
+    # NUEVA LÓGICA: Solo bloquea si ya tiene un plan IGUAL o MAYOR
+    if usuario["producto_activo"] > 0 and usuario["valor_producto"] >= precio_plan:
         cursor.close()
         conexion.close()
-        return jsonify({"error": "Ya tienes un plan activo"}), 400
+        return jsonify({"error": "Ya tienes un plan igual o superior"}), 400
 
     saldo_disponible = usuario["saldo_real"] + usuario["saldo_bono"]
 
-    if saldo_disponible >= precio_plan:
-        if usuario["saldo_bono"] >= precio_plan:
-            nuevo_bono = usuario["saldo_bono"] - precio_plan
+    # Si está mejorando plan, descuenta el valor del plan anterior
+    if usuario["producto_activo"] > 0:
+        precio_a_pagar = precio_plan - usuario["valor_producto"]
+        mensaje = f"Plan mejorado a {PLANES[plan_valido]['nombre']}"
+        es_upgrade = True
+    else:
+        precio_a_pagar = precio_plan
+        mensaje = f"Plan activado: {PLANES[plan_valido]['nombre']}"
+        es_upgrade = False
+
+    if saldo_disponible >= precio_a_pagar:
+        if usuario["saldo_bono"] >= precio_a_pagar:
+            nuevo_bono = usuario["saldo_bono"] - precio_a_pagar
             nuevo_real = usuario["saldo_real"]
         else:
-            resto = precio_plan - usuario["saldo_bono"]
+            resto = precio_a_pagar - usuario["saldo_bono"]
             nuevo_bono = 0
             nuevo_real = usuario["saldo_real"] - resto
 
@@ -348,17 +359,18 @@ def comprar_plan():
         WHERE id = %s
         """, (nuevo_bono, nuevo_real, plan_valido, precio_plan, ganancia_diaria, usuario["id"]))
 
-        # Tu ganancia: 100% del precio del plan
-        cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (precio_plan, PROPIETARIO_TELEFONO))
-        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (usuario["telefono"], precio_plan, f'Compra {PLANES[plan_valido]["nombre"]}'))
-        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'venta', %s, %s)", (PROPIETARIO_TELEFONO, precio_plan, f'Venta {PLANES[plan_valido]["nombre"]}'))
+        # Tu ganancia: solo cobras la DIFERENCIA si es upgrade
+        ganancia_propietario = precio_a_pagar if es_upgrade else precio_plan
+        cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (ganancia_propietario, PROPIETARIO_TELEFONO))
+        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (usuario["telefono"], precio_a_pagar, mensaje))
+        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'venta', %s, %s)", (PROPIETARIO_TELEFONO, ganancia_propietario, mensaje))
 
         conexion.commit()
         cursor.close()
         conexion.close()
-        return jsonify({"success": True, "message": "Plan activado para siempre"})
+        return jsonify({"success": True, "message": mensaje})
     else:
-        monto_faltante = precio_plan - saldo_disponible
+        monto_faltante = precio_a_pagar - saldo_disponible
         monto_usd = int((monto_faltante / TIPO_CAMBIO) * 100)
 
         checkout_session = stripe.checkout.Session.create(
@@ -366,7 +378,7 @@ def comprar_plan():
             line_items=[{
                 "price_data": {
                     "currency": "usd",
-                    "product_data": {"name": f'{PLANES[plan_valido]["nombre"]} - C${precio_plan}'},
+                    "product_data": {"name": f'{PLANES[plan_valido]["nombre"]} - C${precio_a_pagar}'},
                     "unit_amount": monto_usd,
                 },
                 "quantity": 1,
@@ -378,7 +390,8 @@ def comprar_plan():
                 "precio_plan": precio_plan,
                 "ganancia_diaria": ganancia_diaria,
                 "saldo_usado": saldo_disponible,
-                "plan_id": plan_valido
+                "plan_id": plan_valido,
+                "es_upgrade": "true" if es_upgrade else "false"
             }
         )
         cursor.close()
@@ -477,20 +490,24 @@ def webhook():
             ganancia_diaria = int(metadata["ganancia_diaria"])
             saldo_usado = int(metadata["saldo_usado"])
             plan_id = int(metadata["plan_id"])
+            es_upgrade = metadata.get("es_upgrade") == "true"
 
             conexion = conectar_db()
             cursor = conexion.cursor(cursor_factory=RealDictCursor)
-            cursor.execute("SELECT saldo_bono, saldo_real FROM usuarios WHERE telefono = %s", (telefono,))
+            cursor.execute("SELECT saldo_bono, saldo_real, producto_activo, valor_producto FROM usuarios WHERE telefono = %s", (telefono,))
             user_data = cursor.fetchone()
-            bono_actual = user_data["saldo_bono"]
-            real_actual = user_data["saldo_real"]
 
-            if bono_actual >= saldo_usado:
-                nuevo_bono = bono_actual - saldo_usado
-                nuevo_real = real_actual
+            if es_upgrade:
+                precio_a_pagar = precio_plan - user_data["valor_producto"]
+            else:
+                precio_a_pagar = precio_plan
+
+            if user_data["saldo_bono"] >= saldo_usado:
+                nuevo_bono = user_data["saldo_bono"] - saldo_usado
+                nuevo_real = user_data["saldo_real"]
             else:
                 nuevo_bono = 0
-                nuevo_real = real_actual - (saldo_usado - bono_actual)
+                nuevo_real = user_data["saldo_real"] - (saldo_usado - user_data["saldo_bono"])
 
             cursor.execute("""
             UPDATE usuarios SET
@@ -502,9 +519,12 @@ def webhook():
             WHERE telefono = %s
             """, (nuevo_bono, nuevo_real, plan_id, precio_plan, ganancia_diaria, telefono))
 
-            cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (precio_plan, PROPIETARIO_TELEFONO))
-            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (telefono, precio_plan, f'Compra {PLANES[plan_id]["nombre"]}'))
-            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'venta', %s, %s)", (PROPIETARIO_TELEFONO, precio_plan, f'Venta {PLANES[plan_id]["nombre"]}'))
+            ganancia_propietario = precio_a_pagar if es_upgrade else precio_plan
+            mensaje = f'Mejora a {PLANES[plan_id]["nombre"]}' if es_upgrade else f'Compra {PLANES[plan_id]["nombre"]}'
+
+            cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (ganancia_propietario, PROPIETARIO_TELEFONO))
+            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'compra', %s, %s)", (telefono, precio_a_pagar, mensaje))
+            cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion) VALUES (%s, 'venta', %s, %s)", (PROPIETARIO_TELEFONO, ganancia_propietario, mensaje))
 
             conexion.commit()
             cursor.close()
