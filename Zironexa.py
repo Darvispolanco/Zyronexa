@@ -391,7 +391,7 @@ def retirar():
         cursor.execute("SELECT saldo_real FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
         session["usuario"]["saldo_real"] = cursor.fetchone()["saldo_real"]
 
-        return jsonify({"success": True, "message": f"Solicitud creada. Recibirás C${monto_neto} en 1-24 horas"})
+        return jsonify({"success": True, "message": f"Solicitud creada. Recibirás C${monto_neto} en 1-7 días hábiles"})
     except Exception as e:
         conexion.rollback()
         return jsonify({"error": str(e)}), 500
