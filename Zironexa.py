@@ -353,7 +353,6 @@ def retirar():
         cursor.close()
         conexion.close()
 
-# ===== CORREGIDO: Actualiza ganancia_diaria siempre =====
 @app.route("/comprar_plan", methods=["POST"])
 def comprar_plan():
     if "usuario" not in session:
@@ -498,6 +497,7 @@ def webhook():
                 monto = int(metadata["monto_cordobas"])
                 conexion = conectar_db()
                 cursor = conexion.cursor()
+                # ===== CORREGIDO: Ahora SUMA en vez de reemplazar =====
                 cursor.execute("""
                 UPDATE usuarios SET saldo_real = saldo_real + %s, total_depositado = total_depositado + %s
                 WHERE telefono = %s
@@ -632,7 +632,6 @@ def marcar_pagado(id):
     conexion.close()
     return jsonify({"success": True})
 
-# ===== AGREGADO: Script para sincronizar usuarios existentes =====
 @app.route("/sync_ganancias_admin", methods=["POST"])
 def sync_ganancias_admin():
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
