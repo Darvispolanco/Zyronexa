@@ -226,7 +226,7 @@
         .modal-content h2 {
             margin-bottom: 20px;
         }
-        .modal-content input {
+        .modal-content input, .modal-content select {
             width: 100%;
             padding: 12px;
             margin: 10px 0;
@@ -369,14 +369,53 @@
         </div>
     </div>
 
-    <!-- Modal Retiro -->
+    <!-- Modal Retiro ACTUALIZADO -->
     <div id="modalRetiro" class="modal">
         <div class="modal-content">
             <h2>Solicitar Retiro</h2>
             <p>Saldo real disponible: <strong>C${{ usuario.saldo_real }}</strong></p>
             <p style="font-size: 12px; color: #666;">El bono no es retirable</p>
-            <input type="number" id="montoRetiro" placeholder="Monto a retirar" min="360">
-            <p style="font-size: 12px; color: #666;">Mínimo C$360</p>
+            
+            <label>Método de retiro:</label>
+            <select id="metodo" onchange="cambiarMetodo()">
+                <option value="tarjeta">Tarjeta débito/crédito</option>
+                <option value="billetera">Billetera móvil</option>
+                <option value="cuenta">Cuenta bancaria</option>
+            </select>
+
+            <div id="campo-tarjeta">
+                <input type="text" id="numero_tarjeta" placeholder="1234 5678 9012 3456" maxlength="19">
+                <select id="banco_tarjeta">
+                    <option>LAFISE</option>
+                    <option>BAC</option>
+                    <option>BANPRO</option>
+                    <option>FICOHSA</option>
+                    <option>BAMPRO</option>
+                </select>
+            </div>
+
+            <div id="campo-billetera" style="display:none">
+                <input type="text" id="celular" placeholder="88887777" maxlength="8">
+                <select id="billetera">
+                    <option>Tigo Money</option>
+                    <option>MiBilletera Banpro</option>
+                    <option>Kiwi</option>
+                </select>
+            </div>
+
+            <div id="campo-cuenta" style="display:none">
+                <input type="text" id="numero_cuenta" placeholder="123456789">
+                <select id="banco_cuenta">
+                    <option>LAFISE</option>
+                    <option>BAC</option>
+                    <option>BANPRO</option>
+                </select>
+            </div>
+
+            <input type="text" id="nombre_titular" placeholder="Nombre del titular">
+            <input type="number" id="montoRetiro" placeholder="Monto a retirar (mín C$360)" min="360">
+            <p style="font-size: 12px; color: #666;">Comisión 10% - Llega en 1-24 horas</p>
+            
             <div class="modal-buttons">
                 <button class="btn" onclick="solicitarRetiro()">Confirmar</button>
                 <button class="btn" style="background: #ccc;" onclick="cerrarModal('modalRetiro')">Cancelar</button>
@@ -421,6 +460,13 @@
             document.getElementById(id).style.display = 'none';
         }
 
+        function cambiarMetodo() {
+            const metodo = document.getElementById('metodo').value;
+            document.getElementById('campo-tarjeta').style.display = metodo === 'tarjeta' ? 'block' : 'none';
+            document.getElementById('campo-billetera').style.display = metodo === 'billetera' ? 'block' : 'none';
+            document.getElementById('campo-cuenta').style.display = metodo === 'cuenta' ? 'block' : 'none';
+        }
+
         async function comprarProducto(precio, ganancia_diaria) {
             if (!confirm(`¿Confirmas la compra del plan por C$${precio}?`)) return;
 
@@ -457,21 +503,57 @@
         }
 
         async function solicitarRetiro() {
+            const metodo = document.getElementById('metodo').value;
             const monto = document.getElementById('montoRetiro').value;
+            const nombre_titular = document.getElementById('nombre_titular').value;
+            
             if(!monto || monto < 360){
                 mostrarAlerta('Monto mínimo de retiro: C$360', 'error');
                 return;
+            }
+            if(!nombre_titular){
+                mostrarAlerta('Nombre del titular requerido', 'error');
+                return;
+            }
+
+            const data = {
+                metodo: metodo,
+                monto: parseInt(monto),
+                nombre_titular: nombre_titular
+            };
+
+            if (metodo === 'tarjeta') {
+                data.numero_tarjeta = document.getElementById('numero_tarjeta').value;
+                data.banco = document.getElementById('banco_tarjeta').value;
+                if(!data.numero_tarjeta || data.numero_tarjeta.length < 16){
+                    mostrarAlerta('Número de tarjeta inválido', 'error');
+                    return;
+                }
+            } else if (metodo === 'billetera') {
+                data.celular = document.getElementById('celular').value;
+                data.banco = document.getElementById('billetera').value;
+                if(!data.celular || data.celular.length != 8){
+                    mostrarAlerta('Celular inválido', 'error');
+                    return;
+                }
+            } else if (metodo === 'cuenta') {
+                data.numero_cuenta = document.getElementById('numero_cuenta').value;
+                data.banco = document.getElementById('banco_cuenta').value;
+                if(!data.numero_cuenta || data.numero_cuenta.length < 8){
+                    mostrarAlerta('Número de cuenta inválido', 'error');
+                    return;
+                }
             }
             
             try{
                 const res = await fetch('/retirar', {
                     method:'POST',
                     headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({monto:parseInt(monto)})
+                    body:JSON.stringify(data)
                 });
-                const data = await res.json();
-                mostrarAlerta(data.message || data.error, data.success ? 'success' : 'error');
-                if(data.success) {
+                const result = await res.json();
+                mostrarAlerta(result.message || result.error, result.success ? 'success' : 'error');
+                if(result.success) {
                     cerrarModal('modalRetiro');
                     setTimeout(() => location.reload(), 1500);
                 }
