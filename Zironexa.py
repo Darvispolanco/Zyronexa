@@ -25,7 +25,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
-
+STRIPE_ACCOUNT_ID = os.getenv("STRIPE_ACCOUNT_ID") # acct_xxxxx de tu cuenta donde cae el dinero
 # Config
 PROPIETARIO_TELEFONO = "84907210"
 PASSWORD_PROPIETARIO = os.getenv("PASSWORD_PROPIETARIO", "123456")
@@ -93,13 +93,17 @@ def crear_base_datos():
     cursor.execute("""
         DO $$
         BEGIN
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
-                          WHERE table_name='historial' AND column_name='estado') THEN
-                ALTER TABLE historial ADD COLUMN estado TEXT DEFAULT 'completado';
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                          WHERE table_name='historial' AND column_name='comprobante_url') THEN
+                ALTER TABLE historial ADD COLUMN comprobante_url TEXT;
             END IF;
             IF NOT EXISTS (SELECT 1 FROM information_schema.columns
-                          WHERE table_name='historial' AND column_name='datos_retiro') THEN
-                ALTER TABLE historial ADD COLUMN datos_retiro TEXT;
+                          WHERE table_name='historial' AND column_name='stripe_transfer_id') THEN
+                ALTER TABLE historial ADD COLUMN stripe_transfer_id TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                          WHERE table_name='historial' AND column_name='stripe_payout_id') THEN
+                ALTER TABLE historial ADD COLUMN stripe_payout_id TEXT;
             END IF;
             IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                           WHERE table_name='historial' AND column_name='fecha_pago') THEN
@@ -140,15 +144,14 @@ def crear_base_datos():
     usuario_existente = cursor.fetchone()
     if not usuario_existente:
         cursor.execute("""
-            INSERT INTO usuarios (nombre, telefono, contrasena, saldo_real, saldo_bono, es_admin)
-            VALUES (%s, %s, 0, 0, 1)
-        """, ("Admin Zyronexa", PROPIETARIO_TELEFONO, generate_password_hash(PASSWORD_PROPIETARIO)))
+            INSERT INTO usuarios (nombre, telefono, contrasena, saldo_real, saldo_bono, es_admin, stripe_account_id)
+            VALUES (%s, %s, %s, 0, 0, 1, %s)
+        """, ("Admin Zyronexa", PROPIETARIO_TELEFONO, generate_password_hash(PASSWORD_PROPIETARIO), STRIPE_ACCOUNT_ID))
         conexion.commit()
     else:
-        if not check_password_hash(usuario_existente[1], PASSWORD_PROPIETARIO):
-            cursor.execute("UPDATE usuarios SET contrasena = %s, es_admin = 1 WHERE telefono = %s",
-                          (generate_password_hash(PASSWORD_PROPIETARIO), PROPIETARIO_TELEFONO))
-            conexion.commit()
+        cursor.execute("UPDATE usuarios SET contrasena = %s, es_admin = 1, stripe_account_id = %s WHERE telefono = %s",
+                      (generate_password_hash(PASSWORD_PROPIETARIO), STRIPE_ACCOUNT_ID, PROPIETARIO_TELEFONO))
+        conexion.commit()
 
     cursor.close()
     conexion.close()
@@ -183,7 +186,7 @@ def registro():
     try:
         cursor.execute("""
             INSERT INTO usuarios (nombre, telefono, contrasena, saldo_real, saldo_bono)
-            VALUES (%s, %s, 0, 500) RETURNING *
+            VALUES (%s, %s, %s, 0, 500) RETURNING *
         """, (nombre, telefono, contrasena_hash))
         usuario = cursor.fetchone()
         conexion.commit()
