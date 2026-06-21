@@ -1,18 +1,25 @@
 import os
 import stripe
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from psycopg2 import errors # Para capturar UniqueViolation
+from psycopg2 import errors
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import re
-import json # AGREGADO
+import json
+import pandas as pd
+from io import BytesIO
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "clave_secreta_123")
+
+# Config carpeta uploads
+UPLOAD_FOLDER = 'static/comprobantes'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Config Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -20,12 +27,11 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 # Config
-PROPIETARIO_TELEFONO = "84907210" # Tu número
+PROPIETARIO_TELEFONO = "84907210"
 PASSWORD_PROPIETARIO = os.getenv("PASSWORD_PROPIETARIO", "123456")
-TIPO_CAMBIO = 36 # 1 USD = 36 NIO
-LIMITE_DIARIO_BAMPRO = 29000 # AGREGADO: Límite BAMPRO Ahorro Fácil
+TIPO_CAMBIO = 36
+LIMITE_DIARIO_BAMPRO = 29000
 
-# Definición de los 10 planes con % escalonado
 PLANES = {
     1: {"nombre": "Plan Free", "precio": 500, "ganancia_diaria": 20, "porcentaje": 4.0},
     2: {"nombre": "Plan Básico", "precio": 1500, "ganancia_diaria": 67, "porcentaje": 4.5},
@@ -77,7 +83,10 @@ def crear_base_datos():
         descripcion TEXT,
         estado TEXT DEFAULT 'completado',
         datos_retiro TEXT,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        fecha_pago TIMESTAMP,
+        notas_pago TEXT,
+        comprobante_url TEXT
     );
     """)
 
@@ -91,6 +100,18 @@ def crear_base_datos():
             IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                           WHERE table_name='historial' AND column_name='datos_retiro') THEN
                 ALTER TABLE historial ADD COLUMN datos_retiro TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                          WHERE table_name='historial' AND column_name='fecha_pago') THEN
+                ALTER TABLE historial ADD COLUMN fecha_pago TIMESTAMP;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                          WHERE table_name='historial' AND column_name='notas_pago') THEN
+                ALTER TABLE historial ADD COLUMN notas_pago TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                          WHERE table_name='historial' AND column_name='comprobante_url') THEN
+                ALTER TABLE historial ADD COLUMN comprobante_url TEXT;
             END IF;
             IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                           WHERE table_name='usuarios' AND column_name='precio_plan') THEN
@@ -120,7 +141,7 @@ def crear_base_datos():
     if not usuario_existente:
         cursor.execute("""
             INSERT INTO usuarios (nombre, telefono, contrasena, saldo_real, saldo_bono, es_admin)
-            VALUES (%s, %s, %s, 0, 0, 1)
+            VALUES (%s, %s, 0, 0, 1)
         """, ("Admin Zyronexa", PROPIETARIO_TELEFONO, generate_password_hash(PASSWORD_PROPIETARIO)))
         conexion.commit()
     else:
@@ -162,7 +183,7 @@ def registro():
     try:
         cursor.execute("""
             INSERT INTO usuarios (nombre, telefono, contrasena, saldo_real, saldo_bono)
-            VALUES (%s, %s, %s, 0, 500) RETURNING *
+            VALUES (%s, %s, 0, 500) RETURNING *
         """, (nombre, telefono, contrasena_hash))
         usuario = cursor.fetchone()
         conexion.commit()
@@ -315,7 +336,7 @@ def retirar():
 
     cursor.execute("""
         SELECT COALESCE(SUM((datos_retiro::json->>'monto_neto')::int), 0) as total_hoy
-        FROM historial WHERE tipo='retiro' AND estado='completado' AND DATE(fecha) = CURRENT_DATE
+        FROM historial WHERE tipo='retiro' AND estado='pagado' AND DATE(fecha_pago) = CURRENT_DATE
     """)
     total_hoy = cursor.fetchone()['total_hoy'] or 0
     if total_hoy + monto_neto > LIMITE_DIARIO_BAMPRO:
@@ -466,7 +487,7 @@ def cobrar_recompensa():
     """, (ganancia_usuario, ganancia_usuario, hoy, usuario["id"]))
     cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (comision_propietario, PROPIETARIO_TELEFONO))
     cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'ganancia', %s, 'Ganancia diaria', 'completado')", (usuario["telefono"], ganancia_usuario))
-    cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'comision', %s, %s, 'completado')", (PROPIETARIO_TELEFONO, comision_propietario, f'Comisión 10% de {usuario["telefono"]}'))
+    cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'comision', %s, 'completado')", (PROPIETARIO_TELEFONO, comision_propietario, f'Comisión 10% de {usuario["telefono"]}'))
     conexion.commit()
     cursor.close()
     conexion.close()
@@ -497,7 +518,6 @@ def webhook():
                 monto = int(metadata["monto_cordobas"])
                 conexion = conectar_db()
                 cursor = conexion.cursor()
-                # ===== CORREGIDO: Ahora SUMA en vez de reemplazar =====
                 cursor.execute("""
                 UPDATE usuarios SET saldo_real = saldo_real + %s, total_depositado = total_depositado + %s
                 WHERE telefono = %s
@@ -583,32 +603,41 @@ def propietario_dashboard():
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("SELECT * FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
     propietario = cursor.fetchone()
+
     cursor.execute("SELECT COUNT(*) as total FROM usuarios WHERE producto_activo > 0")
     total_usuarios_activos = cursor.fetchone()["total"]
     cursor.execute("SELECT COALESCE(SUM(valor_producto), 0) as total FROM usuarios WHERE producto_activo > 0")
     total_ventas = cursor.fetchone()["total"]
     cursor.execute("SELECT COALESCE(SUM(ganancia_diaria * 0.10), 0) as total FROM usuarios WHERE producto_activo > 0")
     comisiones_diarias = int(cursor.fetchone()["total"])
+
+    # Todos los retiros para el frontend
     cursor.execute("""
         SELECT h.*, u.nombre FROM historial h
         JOIN usuarios u ON h.telefono = u.telefono
-        WHERE h.tipo='retiro' AND h.estado='pendiente'
+        WHERE h.tipo='retiro'
         ORDER BY h.fecha DESC
     """)
     retiros = cursor.fetchall()
     for r in retiros:
         r['datos'] = json.loads(r['datos_retiro']) if r['datos_retiro'] else {}
+
+    retiros_pendientes = [r for r in retiros if r['estado'] == 'pendiente']
+    retiros_hoy = [r for r in retiros if r['estado'] == 'pagado' and r['fecha_pago'] and r['fecha_pago'].date() == datetime.now().date()]
+
     cursor.execute("""
         SELECT COALESCE(SUM((datos_retiro::json->>'monto_neto')::int), 0) as total
-        FROM historial WHERE tipo='retiro' AND estado='completado' AND DATE(fecha)=CURRENT_DATE
+        FROM historial WHERE tipo='retiro' AND estado='pagado' AND DATE(fecha_pago)=CURRENT_DATE
     """)
     total_hoy = cursor.fetchone()['total'] or 0
+
     cursor.execute("SELECT * FROM usuarios WHERE telefono!= %s ORDER BY id DESC", (PROPIETARIO_TELEFONO,))
     usuarios = cursor.fetchall()
     cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 20", (PROPIETARIO_TELEFONO,))
     historial = cursor.fetchall()
     cursor.close()
     conexion.close()
+
     stats = {
         "total_ventas": total_ventas,
         "total_usuarios_activos": total_usuarios_activos,
@@ -618,19 +647,65 @@ def propietario_dashboard():
     }
     return render_template("propietario.html",
                          propietario=propietario, stats=stats, usuarios=usuarios,
-                         historial=historial, retiros=retiros, planes=PLANES)
+                         historial=historial, retiros=retiros, retiros_pendientes=retiros_pendientes,
+                         retiros_hoy=retiros_hoy, planes=PLANES)
 
 @app.route("/marcar_pagado/<int:id>", methods=["POST"])
 def marcar_pagado(id):
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
         return jsonify({"error": "No autorizado"}), 401
+
+    notas = request.form.get('notas')
+    comprobante = request.files.get('comprobante')
+
+    url_comprobante = None
+    if comprobante:
+        filename = secure_filename(f"retiro_{id}_{datetime.now().timestamp()}.jpg")
+        path = os.path.join(UPLOAD_FOLDER, filename)
+        comprobante.save(path)
+        url_comprobante = f"/{path}"
+
     conexion = conectar_db()
     cursor = conexion.cursor()
-    cursor.execute("UPDATE historial SET estado='completado' WHERE id=%s AND estado='pendiente'", (id,))
+    cursor.execute("""
+        UPDATE historial
+        SET estado='pagado',
+            fecha_pago=CURRENT_TIMESTAMP,
+            notas_pago=%s,
+            comprobante_url=%s
+        WHERE id=%s AND estado='pendiente'
+    """, (notas, url_comprobante, id))
     conexion.commit()
     cursor.close()
     conexion.close()
     return jsonify({"success": True})
+
+@app.route("/exportar_retiros_hoy")
+def exportar_retiros_hoy():
+    if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
+        return redirect(url_for("index"))
+
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("""
+        SELECT h.id, u.nombre, u.telefono,
+               (h.datos_retiro::json->>'banco') as banco,
+               (h.datos_retiro::json->>'monto_neto')::int as monto_pagar,
+               h.notas_pago, h.fecha_pago
+        FROM historial h
+        JOIN usuarios u ON h.telefono = u.telefono
+        WHERE h.tipo='retiro' AND h.estado='pagado' AND DATE(h.fecha_pago) = CURRENT_DATE
+    """)
+    datos = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+
+    df = pd.DataFrame(datos)
+    output = BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+
+    return send_file(output, as_attachment=True, download_name=f'retiros_{datetime.now().strftime("%Y%m%d")}.xlsx')
 
 @app.route("/sync_ganancias_admin", methods=["POST"])
 def sync_ganancias_admin():
