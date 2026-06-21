@@ -128,6 +128,12 @@
             width: auto;
             margin: 5px;
         }
+        .btn-export {
+            background: #9b59b6;
+            padding: 10px 20px;
+            font-size: 14px;
+            width: auto;
+        }
         .tabla-usuarios {
             width: 100%;
             border-collapse: collapse;
@@ -175,6 +181,14 @@
             font-size: 12px;
             font-weight: bold;
         }
+        .badge-pagado {
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
         .historial-item {
             padding: 15px;
             border-bottom: 1px solid #e0e0e0;
@@ -207,18 +221,27 @@
             border-radius: 15px;
             max-width: 500px;
             width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .modal-content h2 {
             margin-bottom: 20px;
             color: #2c5364;
         }
-        .modal-content input {
+        .modal-content input, .modal-content textarea {
             width: 100%;
             padding: 12px;
             margin: 10px 0;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
+            font-family: inherit;
+        }
+        .modal-content label {
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-top: 10px;
         }
         .modal-buttons {
             display: flex;
@@ -258,6 +281,10 @@
             margin: 10px 0;
             border-radius: 8px;
         }
+        .retiro-card.pagado {
+            background: #f0f9ff;
+            border-left: 4px solid #27ae60;
+        }
         .retiro-datos {
             background: #f5f5f5;
             padding: 12px;
@@ -282,6 +309,7 @@
             margin-right: 5px;
             border-radius: 5px 5px 0 0;
             font-weight: bold;
+            transition: all 0.3s;
         }
         .tab.active {
             background: #2c5364;
@@ -292,6 +320,23 @@
         }
         .tab-content.active {
             display: block;
+        }
+        .filtros-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filtros-bar input, .filtros-bar select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .filtros-bar input {
+            flex: 1;
+            min-width: 200px;
         }
     </style>
 </head>
@@ -324,7 +369,7 @@
                 <div class="subvalue">10% extra de ganancias</div>
             </div>
             <div class="stat-card">
-                <h3>BAMPRO HOY</h3>
+                <h3>RETIROS HOY</h3>
                 <div class="value">C${{ "{:,}".format(stats.total_hoy_bampro) }}</div>
                 <div class="subvalue">Límite: C${{ "{:,}".format(stats.limite_bampro) }}</div>
             </div>
@@ -336,22 +381,45 @@
         </div>
 
         <div>
-            <div class="tab active" onclick="mostrarTab('retiros')">Retiros Pendientes BAMPRO <span class="badge-pendiente">{{ retiros|length }}</span></div>
+            <div class="tab active" onclick="mostrarTab('retiros')">Retiros BAMPRO <span class="badge-pendiente">{{ retiros_pendientes|length }}</span></div>
             <div class="tab" onclick="mostrarTab('acciones')">Acciones</div>
             <div class="tab" onclick="mostrarTab('usuarios')">Usuarios</div>
             <div class="tab" onclick="mostrarTab('historial')">Historial</div>
         </div>
 
         <div id="retiros" class="tab-content active retiros-section">
-            <h2 class="section-title">Retiros Pendientes - Enviar desde BAMPRO Móvil</h2>
+            <h2 class="section-title">Gestión de Retiros BAMPRO</h2>
+            
+            <div class="filtros-bar">
+                <button class="tab active" onclick="filtrarRetiros('pendiente')">Pendientes <span class="badge-pendiente">{{ retiros_pendientes|length }}</span></button>
+                <button class="tab" onclick="filtrarRetiros('pagado_hoy')">Pagados Hoy <span class="badge-activo">{{ retiros_hoy|length }}</span></button>
+                <button class="tab" onclick="filtrarRetiros('todos')">Historial Completo</button>
+                <input type="text" id="buscadorRetiro" placeholder="Buscar por nombre, teléfono..." onkeyup="buscarRetiro()">
+                <select id="filtroBanco" onchange="filtrarBanco()">
+                    <option value="">Todos los bancos</option>
+                    <option value="BAC">BAC</option>
+                    <option value="BANPRO">BANPRO</option>
+                    <option value="LAFISE">LAFISE</option>
+                </select>
+                <button class="btn btn-export" onclick="exportarExcel()">📊 Exportar Hoy</button>
+            </div>
+
+            <div id="listaRetiros">
             {% if retiros %}
                 {% for r in retiros %}
-                <div class="retiro-card">
+                <div class="retiro-card {{ 'pagado' if r.estado == 'pagado' else '' }}" 
+                     data-estado="{{ r.estado }}" 
+                     data-banco="{{ r.datos.banco }}" 
+                     data-nombre="{{ r.nombre|lower }}" 
+                     data-telefono="{{ r.telefono }}">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
                             <b>{{ r.nombre }}</b> - {{ r.telefono }} 
-                            <span class="badge-pendiente">{{ r.datos.metodo|upper }}</span><br>
-                            <small>{{ r.fecha }}</small>
+                            <span class="badge-{{ r.estado }}">{{ r.datos.metodo|upper }} - {{ r.estado|upper }}</span><br>
+                            <small>Solicitado: {{ r.fecha }}</small>
+                            {% if r.fecha_pago %}
+                            <br><small style="color:#27ae60;">Pagado: {{ r.fecha_pago }}</small>
+                            {% endif %}
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 18px; font-weight: bold; color: #e74c3c;">Solicita: C${{ r.datos.monto_solicitado }}</div>
@@ -373,22 +441,33 @@
                         {% endif %}
                         <div><b>Titular:</b> {{ r.datos.titular }}</div>
                         <div><b>Monto a enviar:</b> C${{ r.datos.monto_neto }}</div>
+                        {% if r.notas_pago %}
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
+                            <b>Notas:</b> {{ r.notas_pago }}
+                        </div>
+                        {% endif %}
+                        {% if r.comprobante_url %}
+                        <div><a href="{{ r.comprobante_url }}" target="_blank" style="color:#3498db;">📎 Ver comprobante</a></div>
+                        {% endif %}
                     </div>
 
-                    {% if r.datos.metodo == 'tarjeta' %}
-                        <button class="btn btn-copy" onclick="copiar('{{ r.datos.tarjeta }}')">Copiar Tarjeta</button>
-                    {% elif r.datos.metodo == 'billetera' %}
-                        <button class="btn btn-copy" onclick="copiar('{{ r.datos.celular }}')">Copiar Celular</button>
-                    {% elif r.datos.metodo == 'cuenta' %}
-                        <button class="btn btn-copy" onclick="copiar('{{ r.datos.cuenta }}')">Copiar Cuenta</button>
+                    {% if r.estado == 'pendiente' %}
+                        {% if r.datos.metodo == 'tarjeta' %}
+                            <button class="btn btn-copy" onclick="copiar('{{ r.datos.tarjeta }}')">Copiar Tarjeta</button>
+                        {% elif r.datos.metodo == 'billetera' %}
+                            <button class="btn btn-copy" onclick="copiar('{{ r.datos.celular }}')">Copiar Celular</button>
+                        {% elif r.datos.metodo == 'cuenta' %}
+                            <button class="btn btn-copy" onclick="copiar('{{ r.datos.cuenta }}')">Copiar Cuenta</button>
+                        {% endif %}
+                        <button class="btn btn-copy" onclick="copiar('{{ r.datos.monto_neto }}')">Copiar Monto</button>
+                        <button class="btn btn-pagado" onclick="abrirModalPago({{ r.id }}, '{{ r.nombre }}', {{ r.datos.monto_neto }})">✓ Marcar Pagado</button>
                     {% endif %}
-                    <button class="btn btn-copy" onclick="copiar('{{ r.datos.monto_neto }}')">Copiar Monto</button>
-                    <button class="btn btn-pagado" onclick="marcarPagado({{ r.id }})">✓ Marcar Pagado</button>
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="vacio">No hay retiros pendientes 🎉</div>
+                <div class="vacio">No hay retiros 🎉</div>
             {% endif %}
+            </div>
         </div>
 
         <div id="acciones" class="tab-content acciones-section">
@@ -469,7 +548,7 @@
         </div>
     </div>
 
-    <!-- Modal Retiro -->
+    <!-- Modal Retiro Propietario -->
     <div id="modalRetiro" class="modal">
         <div class="modal-content">
             <h2>Retirar Tu Dinero</h2>
@@ -485,7 +564,32 @@
         </div>
     </div>
 
+    <!-- Modal Marcar Pagado CON COMPROBANTE -->
+    <div id="modalPago" class="modal">
+        <div class="modal-content">
+            <h2>Marcar Retiro como Pagado</h2>
+            <p id="infoPago"></p>
+            
+            <div class="info-box">
+                <strong>⚠️ Importante:</strong> Solo marca pagado si YA enviaste el dinero desde BAMPRO Móvil
+            </div>
+
+            <label>Notas del pago:</label>
+            <textarea id="notasPago" placeholder="Ej: Pagado por BAC 21/06 3:40pm Ref 847293" rows="3"></textarea>
+            
+            <label>Subir comprobante (opcional):</label>
+            <input type="file" id="comprobantePago" accept="image/*">
+            
+            <div class="modal-buttons">
+                <button class="btn btn-pagado" onclick="confirmarPago()">Confirmar Pago</button>
+                <button class="btn" style="background: #ccc;" onclick="cerrarModal('modalPago')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let retiroActualId = null;
+
         function mostrarAlerta(mensaje, tipo) {
             const alert = document.getElementById('alert');
             alert.className = 'alert alert-' + tipo;
@@ -507,19 +611,84 @@
             mostrarAlerta('Copiado: ' + texto, 'success');
         }
 
-        function marcarPagado(id) {
-            if(confirm('¿Ya enviaste el dinero desde BAMPRO Móvil?')) {
-                fetch('/marcar_pagado/' + id, {method: 'POST'})
-                .then(r => r.json())
-                .then(data => {
-                    if(data.success) {
-                        mostrarAlerta('Retiro marcado como pagado', 'success');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        mostrarAlerta(data.error || 'Error', 'error');
-                    }
-                });
+        function abrirModalPago(id, nombre, monto) {
+            retiroActualId = id;
+            document.getElementById('infoPago').innerHTML = `<strong>${nombre}</strong> - C$${monto}`;
+            document.getElementById('notasPago').value = '';
+            document.getElementById('comprobantePago').value = '';
+            document.getElementById('modalPago').style.display = 'flex';
+        }
+
+        async function confirmarPago() {
+            const notas = document.getElementById('notasPago').value;
+            const comprobante = document.getElementById('comprobantePago').files[0];
+            
+            if (!notas) {
+                mostrarAlerta('Agrega las notas del pago', 'error');
+                return;
             }
+
+            const formData = new FormData();
+            formData.append('notas', notas);
+            if (comprobante) formData.append('comprobante', comprobante);
+
+            try {
+                const response = await fetch('/marcar_pagado/' + retiroActualId, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if(data.success) {
+                    mostrarAlerta('Retiro marcado como pagado', 'success');
+                    cerrarModal('modalPago');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    mostrarAlerta(data.error || 'Error', 'error');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al procesar', 'error');
+            }
+        }
+
+        function filtrarRetiros(estado) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.retiro-card').forEach(card => {
+                if (estado === 'todos') {
+                    card.style.display = 'block';
+                } else if (estado === 'pagado_hoy') {
+                    const esHoy = card.dataset.estado === 'pagado';
+                    card.style.display = esHoy ? 'block' : 'none';
+                } else {
+                    card.style.display = card.dataset.estado === estado ? 'block' : 'none';
+                }
+            });
+        }
+
+        function buscarRetiro() {
+            const query = document.getElementById('buscadorRetiro').value.toLowerCase();
+            document.querySelectorAll('.retiro-card').forEach(card => {
+                const nombre = card.dataset.nombre;
+                const telefono = card.dataset.telefono;
+                card.style.display = (nombre.includes(query) || telefono.includes(query)) ? 'block' : 'none';
+            });
+        }
+
+        function filtrarBanco() {
+            const banco = document.getElementById('filtroBanco').value;
+            document.querySelectorAll('.retiro-card').forEach(card => {
+                if (!banco || card.dataset.banco === banco) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function exportarExcel() {
+            window.location.href = '/exportar_retiros_hoy';
         }
 
         function mostrarTab(tab) {
