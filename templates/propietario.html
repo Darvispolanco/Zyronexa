@@ -151,7 +151,7 @@
         }
         .tabla-usuarios td {
             padding: 12px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0;
             white-space: nowrap;
         }
         .tabla-usuarios tr:hover {
@@ -199,10 +199,22 @@
         .historial-item:last-child {
             border-bottom: none;
         }
-        .tipo-venta { color: #27ae60; font-weight: bold; }
-        .tipo-comision { color: #9b59b6; font-weight: bold; }
-        .tipo-retiro { color: #e74c3c; font-weight: bold; }
-        .tipo-deposito { color: #3498db; font-weight: bold; }
+        .tipo-venta {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .tipo-comision {
+            color: #9b59b6;
+            font-weight: bold;
+        }
+        .tipo-retiro {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .tipo-deposito {
+            color: #3498db;
+            font-weight: bold;
+        }
         .modal {
             display: none;
             position: fixed;
@@ -232,7 +244,7 @@
             width: 100%;
             padding: 12px;
             margin: 10px 0;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e0e0;
             border-radius: 8px;
             font-size: 16px;
             font-family: inherit;
@@ -304,7 +316,7 @@
         .tab {
             display: inline-block;
             padding: 10px 20px;
-            background: #e0e0e0;
+            background: #e0e0;
             cursor: pointer;
             margin-right: 5px;
             border-radius: 5px 5px 0 0;
@@ -330,7 +342,7 @@
         }
         .filtros-bar input, .filtros-bar select {
             padding: 10px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e0e0;
             border-radius: 8px;
             font-size: 14px;
         }
@@ -341,209 +353,288 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <h1>Zyronexa - Panel Propietario</h1>
-                <span class="badge-owner">ADMIN</span>
-            </div>
+    <div class="header">
+        <div>
+            <h1>Zyronexa - Panel Propietario</h1>
+            <span class="badge-owner">ADMIN</span>
+        </div>
+        <div style="margin-top: 10px; font-size: 18px;">
+            <strong>Tu saldo: C${{ "{:,}".format(propietario.saldo_real) }}</strong>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            {% if stats.limite_bampro - stats.total_hoy_bampro > 0 %}
+            <button class="btn btn-retirar" style="width: auto; margin: 0; padding: 12px 25px;" onclick="abrirModalRetiro()">
+                💸 RETIRAR MI DINERO
+            </button>
+            {% else %}
+            <button class="btn btn-retirar" style="width: auto; margin: 0; padding: 12px 25px;" disabled>
+                ⚠️ Límite BAMPRO alcanzado hoy
+            </button>
+            {% endif %}
             <button class="logout-btn" onclick="window.location.href='/logout'">Cerrar Sesión</button>
         </div>
+    </div>
 
-        <div id="alert" class="alert"></div>
+    <div id="alert" class="alert"></div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>TU SALDO REAL</h3>
-                <div class="value">C${{ "{:,}".format(propietario.saldo_real) }}</div>
-                <div class="subvalue">✓ Dinero 100% tuyo - Retirable</div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>TU SALDO REAL</h3>
+            <div class="value">
+                C${{ "{:,}".format(propietario.saldo_real) }}
             </div>
-            <div class="stat-card">
-                <h3>TOTAL VENTAS</h3>
-                <div class="value">C${{ "{:,}".format(stats.total_ventas) }}</div>
-                <div class="subvalue">{{ stats.total_usuarios_activos }} usuarios con plan</div>
-            </div>
-            <div class="stat-card">
-                <h3>COMISIONES DIARIAS</h3>
-                <div class="value">C${{ "{:,}".format(stats.comisiones_diarias) }}</div>
-                <div class="subvalue">10% extra de ganancias</div>
-            </div>
-            <div class="stat-card">
-                <h3>RETIROS HOY</h3>
-                <div class="value">C${{ "{:,}".format(stats.total_hoy_bampro) }}</div>
-                <div class="subvalue">Límite: C${{ "{:,}".format(stats.limite_bampro) }}</div>
-            </div>
-            <div class="stat-card">
-                <h3>TOTAL RETIRADO</h3>
-                <div class="value">C${{ "{:,}".format(propietario.total_retirado) }}</div>
-                <div class="subvalue">Histórico</div>
+            <div class="subvalue">
+                ✓ Dinero 100% tuyo - Retirable
             </div>
         </div>
+        <div class="stat-card">
+            <h3>TOTAL VENTAS</h3>
+            <div class="value">
+                C${{ "{:,}".format(stats.total_ventas) }}
+            </div>
+            <div class="subvalue">
+                {{ stats.total_usuarios_activos }} usuarios con plan
+            </div>
+        </div>
+        <div class="stat-card">
+            <h3>COMISIONES DIARIAS</h3>
+            <div class="value">
+                C${{ "{:,}".format(stats.comisiones_diarias) }}
+            </div>
+            <div class="subvalue">
+                10% extra de ganancias
+            </div>
+        </div>
+        <div class="stat-card">
+            <h3>RETIROS HOY</h3>
+            <div class="value">
+                C${{ "{:,}".format(stats.total_hoy_bampro) }}
+            </div>
+            <div class="subvalue">
+                Límite: C${{ "{:,}".format(stats.limite_bampro) }}
+            </div>
+        </div>
+        <div class="stat-card">
+            <h3>TOTAL RETIRADO</h3>
+            <div class="value">
+                C${{ "{:,}".format(propietario.total_retirado) }}
+            </div>
+            <div class="subvalue">
+                Histórico
+            </div>
+        </div>
+    </div>
 
-        <div>
-            <div class="tab active" onclick="mostrarTab('retiros')">Retiros BAMPRO <span class="badge-pendiente">{{ retiros_pendientes|length }}</span></div>
-            <div class="tab" onclick="mostrarTab('acciones')">Acciones</div>
-            <div class="tab" onclick="mostrarTab('usuarios')">Usuarios</div>
-            <div class="tab" onclick="mostrarTab('historial')">Historial</div>
+    <div>
+        <div class="stat-card">
+            <h3>CUPO BAMPRO HOY</h3>
+            <div class="value">
+                C${{ "{:,}".format(stats.limite_bampro - stats.total_hoy_bampro) }}
+            </div>
+            <div class="subvalue">
+                Disponible de C${{ "{:,}".format(stats.limite_bampro) }}
+            </div>
+        </div>
+        <div class="tab active" onclick="mostrarTab('retiros')">
+            Retiros BAMPRO <span class="badge-pendiente">{{ retiros_pendientes|length }}</span>
+        </div>
+        <div class="tab" onclick="mostrarTab('acciones')">
+            Acciones
+        </div>
+        <div class="tab" onclick="mostrarTab('usuarios')">
+            Usuarios
+        </div>
+        <div class="tab" onclick="mostrarTab('historial')">
+            Historial
+        </div>
+    </div>
+
+    <div id="retiros" class="tab-content active retiros-section">
+        <h2 class="section-title">Gestión de Retiros BAMPRO</h2>
+
+        <div class="filtros-bar">
+            <button class="tab active" onclick="filtrarRetiros('pendiente')">Pendientes <span class="badge-pendiente">{{ retiros_pendientes|length }}</span></button>
+            <button class="tab" onclick="filtrarRetiros('pagado_hoy')">Pagados Hoy <span class="badge-activo">{{ retiros_hoy|length }}</span></button>
+            <button class="tab" onclick="filtrarRetiros('todos')">Historial Completo</button>
+            <input type="text" id="buscadorRetiro" placeholder="Buscar por nombre, teléfono..." onkeyup="buscarRetiro()">
+            <select id="filtroBanco" onchange="filtrarBanco()">
+                <option value="">Todos los bancos</option>
+                <option value="BAC">BAC</option>
+                <option value="BANPRO">BANPRO</option>
+                <option value="LAFISE">LAFISE</option>
+                <option value="FICOHSA">FICOHSA</option>
+                <option value="AVANZ">AVANZ</option>
+            </select>
+            <button class="btn btn-export" onclick="exportarExcel()">📊 Exportar Hoy</button>
         </div>
 
-        <div id="retiros" class="tab-content active retiros-section">
-            <h2 class="section-title">Gestión de Retiros BAMPRO</h2>
-            
-            <div class="filtros-bar">
-                <button class="tab active" onclick="filtrarRetiros('pendiente')">Pendientes <span class="badge-pendiente">{{ retiros_pendientes|length }}</span></button>
-                <button class="tab" onclick="filtrarRetiros('pagado_hoy')">Pagados Hoy <span class="badge-activo">{{ retiros_hoy|length }}</span></button>
-                <button class="tab" onclick="filtrarRetiros('todos')">Historial Completo</button>
-                <input type="text" id="buscadorRetiro" placeholder="Buscar por nombre, teléfono..." onkeyup="buscarRetiro()">
-                <select id="filtroBanco" onchange="filtrarBanco()">
-                    <option value="">Todos los bancos</option>
-                    <option value="BAC">BAC</option>
-                    <option value="BANPRO">BANPRO</option>
-                    <option value="LAFISE">LAFISE</option>
-                </select>
-                <button class="btn btn-export" onclick="exportarExcel()">📊 Exportar Hoy</button>
-            </div>
-
-            <div id="listaRetiros">
+        <div id="listaRetiros">
             {% if retiros %}
-                {% for r in retiros %}
-                <div class="retiro-card {{ 'pagado' if r.estado == 'pagado' else '' }}" 
-                     data-estado="{{ r.estado }}" 
-                     data-banco="{{ r.datos.banco }}" 
-                     data-nombre="{{ r.nombre|lower }}" 
-                     data-telefono="{{ r.telefono }}">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div>
-                            <b>{{ r.nombre }}</b> - {{ r.telefono }} 
-                            <span class="badge-{{ r.estado }}">{{ r.datos.metodo|upper }} - {{ r.estado|upper }}</span><br>
-                            <small>Solicitado: {{ r.fecha }}</small>
-                            {% if r.fecha_pago %}
-                            <br><small style="color:#27ae60;">Pagado: {{ r.fecha_pago }}</small>
-                            {% endif %}
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 18px; font-weight: bold; color: #e74c3c;">Solicita: C${{ r.datos.monto_solicitado }}</div>
-                            <div style="font-size: 22px; font-weight: bold; color: #27ae60;">Pagar: C${{ r.datos.monto_neto }}</div>
-                            <small>Comisión: C${{ r.datos.comision }}</small>
-                        </div>
-                    </div>
-
-                    <div class="retiro-datos">
-                        {% if r.datos.metodo == 'tarjeta' %}
-                            <div><b>Banco:</b> {{ r.datos.banco }}</div>
-                            <div><b>Tarjeta:</b> {{ r.datos.tarjeta }}</div>
-                        {% elif r.datos.metodo == 'billetera' %}
-                            <div><b>Billetera:</b> {{ r.datos.billetera }}</div>
-                            <div><b>Celular:</b> {{ r.datos.celular }}</div>
-                        {% elif r.datos.metodo == 'cuenta' %}
-                            <div><b>Banco:</b> {{ r.datos.banco }}</div>
-                            <div><b>Cuenta:</b> {{ r.datos.cuenta }}</div>
-                        {% endif %}
-                        <div><b>Titular:</b> {{ r.datos.titular }}</div>
-                        <div><b>Monto a enviar:</b> C${{ r.datos.monto_neto }}</div>
-                        {% if r.notas_pago %}
-                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
-                            <b>Notas:</b> {{ r.notas_pago }}
-                        </div>
-                        {% endif %}
-                        {% if r.comprobante_url %}
-                        <div><a href="{{ r.comprobante_url }}" target="_blank" style="color:#3498db;">📎 Ver comprobante</a></div>
+            {% for r in retiros %}
+            <div class="retiro-card {{ 'pagado' if r.estado == 'pagado' else '' }}"
+                data-estado="{{ r.estado }}"
+                data-banco="{{ r.datos.banco }}"
+                data-nombre="{{ r.nombre|lower }}"
+                data-telefono="{{ r.telefono }}">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <b>{{ r.nombre }}</b> - {{ r.telefono }}
+                        <span class="badge-{{ r.estado }}">{{ r.datos.metodo|upper }} - {{ r.estado|upper }}</span><br>
+                        <small>Solicitado: {{ r.fecha }}</small>
+                        {% if r.fecha_pago %}
+                        <br><small style="color:#27ae60;">Pagado: {{ r.fecha_pago }}</small>
                         {% endif %}
                     </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 18px; font-weight: bold; color: #e74c3c;">
+                            Solicita: C${{ r.datos.monto_solicitado }}
+                        </div>
+                        <div style="font-size: 22px; font-weight: bold; color: #27ae60;">
+                            Pagar: C${{ r.datos.monto_neto }}
+                        </div>
+                        <small>Comisión: C${{ r.datos.comision }}</small>
+                    </div>
+                </div>
 
-                    {% if r.estado == 'pendiente' %}
-                        {% if r.datos.metodo == 'tarjeta' %}
-                            <button class="btn btn-copy" onclick="copiar('{{ r.datos.tarjeta }}')">Copiar Tarjeta</button>
-                        {% elif r.datos.metodo == 'billetera' %}
-                            <button class="btn btn-copy" onclick="copiar('{{ r.datos.celular }}')">Copiar Celular</button>
-                        {% elif r.datos.metodo == 'cuenta' %}
-                            <button class="btn btn-copy" onclick="copiar('{{ r.datos.cuenta }}')">Copiar Cuenta</button>
-                        {% endif %}
-                        <button class="btn btn-copy" onclick="copiar('{{ r.datos.monto_neto }}')">Copiar Monto</button>
-                        <button class="btn btn-pagado" onclick="abrirModalPago({{ r.id }}, '{{ r.nombre }}', {{ r.datos.monto_neto }})">✓ Marcar Pagado</button>
+                <div class="retiro-datos">
+                    {% if r.datos.metodo == 'tarjeta' %}
+                    <div>
+                        <b>Banco:</b> {{ r.datos.banco }}
+                    </div>
+                    <div>
+                        <b>Tarjeta:</b> {{ r.datos.tarjeta }}
+                    </div>
+                    {% elif r.datos.metodo == 'billetera' %}
+                    <div>
+                        <b>Billetera:</b> {{ r.datos.billetera }}
+                    </div>
+                    <div>
+                        <b>Celular:</b> {{ r.datos.celular }}
+                    </div>
+                    {% elif r.datos.metodo == 'cuenta' %}
+                    <div>
+                        <b>Banco:</b> {{ r.datos.banco }}
+                    </div>
+                    <div>
+                        <b>Cuenta:</b> {{ r.datos.cuenta }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <b>Titular:</b> {{ r.datos.titular }}
+                    </div>
+                    <div>
+                        <b>Monto a enviar:</b> C${{ r.datos.monto_neto }}
+                    </div>
+                    {% if r.notas_pago %}
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
+                        <b>Notas:</b> {{ r.notas_pago }}
+                    </div>
+                    {% endif %}
+                    {% if r.comprobante_url %}
+                    <div>
+                        <a href="{{ r.comprobante_url }}" target="_blank" style="color:#3498db;">📎 Ver comprobante</a>
+                    </div>
                     {% endif %}
                 </div>
-                {% endfor %}
+
+                {% if r.estado == 'pendiente' %}
+                {% if r.datos.metodo == 'tarjeta' %}
+                <button class="btn btn-copy" onclick="copiar('{{ r.datos.tarjeta }}')">Copiar Tarjeta</button>
+                {% elif r.datos.metodo == 'billetera' %}
+                <button class="btn btn-copy" onclick="copiar('{{ r.datos.celular }}')">Copiar Celular</button>
+                {% elif r.datos.metodo == 'cuenta' %}
+                <button class="btn btn-copy" onclick="copiar('{{ r.datos.cuenta }}')">Copiar Cuenta</button>
+                {% endif %}
+                <button class="btn btn-copy" onclick="copiar('{{ r.datos.monto_neto }}')">Copiar Monto</button>
+                <button class="btn btn-pagado" onclick="abrirModalPago({{ r.id }}, '{{ r.nombre }}', {{ r.datos.monto_neto }})">✓ Marcar Pagado</button>
+                {% endif %}
+            </div>
+            {% endfor %}
             {% else %}
-                <div class="vacio">No hay retiros 🎉</div>
+            <div class="vacio">
+                No hay retiros 🎉
+            </div>
             {% endif %}
-            </div>
         </div>
+    </div>
 
-        <div id="acciones" class="tab-content acciones-section">
-            <h2 class="section-title">Acciones de Propietario</h2>
-            <div class="info-box">
-                <strong>💰 Importante:</strong> Este saldo es dinero real confirmado por Stripe. Puedes retirarlo cuando quieras. Los usuarios no pueden tocarlo.
-            </div>
-            <button class="btn btn-retirar" onclick="abrirModalRetiro()">
-                💸 RETIRAR MI DINERO - C${{ "{:,}".format(propietario.saldo_real) }}
-            </button>
-            <button class="btn" onclick="window.location.href='/dashboard'">
-                👤 Ver Vista de Usuario
-            </button>
+    <div id="acciones" class="tab-content acciones-section">
+        <h2 class="section-title">Acciones de Propietario</h2>
+        <div class="info-box">
+            <strong>💰 Importante:</strong> Este saldo es dinero real confirmado por Stripe. Puedes retirarlo cuando quieras. Los usuarios no pueden tocarlo.
         </div>
+        <button class="btn btn-retirar" onclick="abrirModalRetiro()">
+            💸 RETIRAR MI DINERO - C${{ "{:,}".format(propietario.saldo_real) }}
+        </button>
+        <button class="btn" onclick="window.location.href='/dashboard'">
+            👤 Ver Vista de Usuario
+        </button>
+    </div>
 
-        <div id="usuarios" class="tab-content usuarios-section">
-            <h2 class="section-title">Usuarios Registrados - {{ usuarios|length }} total</h2>
-            <table class="tabla-usuarios">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th>Plan</th>
-                        <th>Saldo Real</th>
-                        <th>Bono</th>
-                        <th>Ganancia/Día</th>
-                        <th>Total Generado</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in usuarios %}
-                    <tr>
-                        <td>{{ user.nombre }}</td>
-                        <td>{{ user.telefono }}</td>
-                        <td>
-                            {% if user.producto_activo > 0 %}
-                                {{ planes[user.producto_activo].nombre }}
-                            {% else %}
-                                Sin plan
-                            {% endif %}
-                        </td>
-                        <td>C${{ "{:,}".format(user.saldo_real) }}</td>
-                        <td>C${{ "{:,}".format(user.saldo_bono) }}</td>
-                        <td>C${{ "{:,}".format(user.ganancia_diaria) }}</td>
-                        <td>C${{ "{:,}".format(user.total_generado) }}</td>
-                        <td>
-                            {% if user.producto_activo > 0 %}
-                                <span class="badge-activo">ACTIVO</span>
-                            {% else %}
-                                <span class="badge-inactivo">INACTIVO</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div id="historial" class="tab-content historial-section">
-            <h2 class="section-title">Historial de Ingresos</h2>
-            {% if historial %}
-                {% for item in historial %}
-                <div class="historial-item">
-                    <div>
-                        <span class="tipo-{{ item.tipo }}">{{ item.tipo.upper() }}</span>
-                        <p>{{ item.descripcion }}</p>
-                        <small>{{ item.fecha }}</small>
-                    </div>
-                    <div style="font-size: 20px; font-weight: bold; color: #27ae60;">
-                        +C${{ "{:,}".format(item.monto) }}
-                    </div>
-                </div>
+    <div id="usuarios" class="tab-content usuarios-section">
+        <h2 class="section-title">Usuarios Registrados - {{ usuarios|length }} total</h2>
+        <table class="tabla-usuarios">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Plan</th>
+                    <th>Saldo Real</th>
+                    <th>Bono</th>
+                    <th>Ganancia/Día</th>
+                    <th>Total Generado</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in usuarios %}
+                <tr>
+                    <td>{{ user.nombre }}</td>
+                    <td>{{ user.telefono }}</td>
+                    <td>
+                        {% if user.producto_activo > 0 %}
+                        {{ planes[user.producto_activo].nombre }}
+                        {% else %}
+                        Sin plan
+                        {% endif %}
+                    </td>
+                    <td>C${{ "{:,}".format(user.saldo_real) }}</td>
+                    <td>C${{ "{:,}".format(user.saldo_bono) }}</td>
+                    <td>C${{ "{:,}".format(user.ganancia_diaria) }}</td>
+                    <td>C${{ "{:,}".format(user.total_generado) }}</td>
+                    <td>
+                        {% if user.producto_activo > 0 %}
+                        <span class="badge-activo">ACTIVO</span>
+                        {% else %}
+                        <span class="badge-inactivo">INACTIVO</span>
+                        {% endif %}
+                    </td>
+                </tr>
                 {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div id="historial" class="tab-content historial-section">
+        <h2 class="section-title">Historial de Ingresos</h2>
+        {% if historial %}
+        {% for item in historial %}
+        <div class="historial-item">
+            <div>
+                <span class="tipo-{{ item.tipo }}">{{ item.tipo.upper() }}</span>
+                <p>
+                    {{ item.descripcion }}
+                </p>
+                <small>{{ item.fecha }}</small>
+            </div>
+            <div style="font-size: 20px; font-weight: bold; color: #27ae60;">
+                +C${{ "{:,}".format(item.monto) }}
+            </div>
+            {% endfor %}
             {% else %}
-                <p style="text-align: center; color: #999;">No hay movimientos aún</p>
+            <p style="text-align: center; color: #999;">
+                No hay movimientos aún
+            </p>
             {% endif %}
         </div>
     </div>
@@ -552,7 +643,9 @@
     <div id="modalRetiro" class="modal">
         <div class="modal-content">
             <h2>Retirar Tu Dinero</h2>
-            <p>Saldo disponible: <strong>C${{ "{:,}".format(propietario.saldo_real) }}</strong></p>
+            <p>
+                Saldo disponible: <strong>C${{ "{:,}".format(propietario.saldo_real) }}</strong>
+            </p>
             <div class="info-box">
                 Este retiro se registra en la base de datos. Debes hacer el Payout manual desde tu Dashboard de Stripe a tu cuenta bancaria.
             </div>
@@ -569,17 +662,17 @@
         <div class="modal-content">
             <h2>Marcar Retiro como Pagado</h2>
             <p id="infoPago"></p>
-            
+
             <div class="info-box">
                 <strong>⚠️ Importante:</strong> Solo marca pagado si YA enviaste el dinero desde BAMPRO Móvil
             </div>
 
             <label>Notas del pago:</label>
             <textarea id="notasPago" placeholder="Ej: Pagado por BAC 21/06 3:40pm Ref 847293" rows="3"></textarea>
-            
+
             <label>Subir comprobante (opcional):</label>
             <input type="file" id="comprobantePago" accept="image/*">
-            
+
             <div class="modal-buttons">
                 <button class="btn btn-pagado" onclick="confirmarPago()">Confirmar Pago</button>
                 <button class="btn" style="background: #ccc;" onclick="cerrarModal('modalPago')">Cancelar</button>
@@ -622,7 +715,7 @@
         async function confirmarPago() {
             const notas = document.getElementById('notasPago').value;
             const comprobante = document.getElementById('comprobantePago').files[0];
-            
+
             if (!notas) {
                 mostrarAlerta('Agrega las notas del pago', 'error');
                 return;
@@ -638,8 +731,8 @@
                     body: formData
                 });
                 const data = await response.json();
-                
-                if(data.success) {
+
+                if (data.success) {
                     mostrarAlerta('Retiro marcado como pagado', 'success');
                     cerrarModal('modalPago');
                     setTimeout(() => location.reload(), 1000);
@@ -654,15 +747,15 @@
         function filtrarRetiros(estado) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
-            
+
             document.querySelectorAll('.retiro-card').forEach(card => {
                 if (estado === 'todos') {
                     card.style.display = 'block';
                 } else if (estado === 'pagado_hoy') {
                     const esHoy = card.dataset.estado === 'pagado';
-                    card.style.display = esHoy ? 'block' : 'none';
+                    card.style.display = esHoy ? 'block': 'none';
                 } else {
-                    card.style.display = card.dataset.estado === estado ? 'block' : 'none';
+                    card.style.display = card.dataset.estado === estado ? 'block': 'none';
                 }
             });
         }
@@ -672,7 +765,7 @@
             document.querySelectorAll('.retiro-card').forEach(card => {
                 const nombre = card.dataset.nombre;
                 const telefono = card.dataset.telefono;
-                card.style.display = (nombre.includes(query) || telefono.includes(query)) ? 'block' : 'none';
+                card.style.display = (nombre.includes(query) || telefono.includes(query)) ? 'block': 'none';
             });
         }
 
@@ -700,13 +793,15 @@
 
         async function solicitarRetiro() {
             const monto = document.getElementById('montoRetiro').value;
-            const maxSaldo = {{ propietario.saldo_real }};
-            
+            const maxSaldo = {{
+                propietario.saldo_real
+            }};
+
             if (!monto || monto < 1) {
                 mostrarAlerta('Ingresa un monto válido', 'error');
                 return;
             }
-            
+
             if (parseInt(monto) > maxSaldo) {
                 mostrarAlerta('Saldo insuficiente', 'error');
                 return;
@@ -717,11 +812,14 @@
             try {
                 const response = await fetch('/retirar_propietario', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({monto: parseInt(monto)})
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        monto: parseInt(monto)})
                 });
                 const data = await response.json();
-                
+
                 if (data.success) {
                     mostrarAlerta(data.message, 'success');
                     cerrarModal('modalRetiro');
