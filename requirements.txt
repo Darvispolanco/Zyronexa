@@ -1,6 +1,6 @@
-Flask
-gunicorn
-psycopg2-binary
-werkzeug
-stripe
+Flask==3.0.3
+gunicorn==22.0.0
+stripe==10.12.0
+psycopg2-binary==2.9
 python-dotenv==1.0.1
+pandas==2.2.2
