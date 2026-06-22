@@ -490,8 +490,7 @@ def cobrar_recompensa():
     conexion.commit()
     cursor.close()
     conexion.close()
-    return jsonify({"success": True, "message": f"Ganaste C${ganancia_usuario}. Puedes cobrar todos los días"}) C${ganancia_usuario}. Puedes cobrar todos los días"})
-
+    return jsonify({"success": True, "message": f"Ganaste"} C${ganancia_usuario}. "Puedes cobrar todos los días"})
 @app.route("/webhook", methods=["POST"])
 def webhook():
     payload = request.data
