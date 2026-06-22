@@ -230,7 +230,7 @@ def dashboard():
         return redirect('/login')
     if usuario.get('es_admin') == 1:
         return redirect(url_for("propietario_dashboard"))
-    return render_template('dashboard.html', usuario=usuario, planes=PLANES, stripe_key=STRIPE_PUBLISHABLE_KEY)
+    return render_template('usuario.html', usuario=usuario, planes=PLANES, stripe_key=STRIPE_PUBLISHABLE_KEY)
 
 @app.route("/create-deposit-session", methods=["POST"])
 def create_deposit_session():
