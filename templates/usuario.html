@@ -370,59 +370,69 @@
     </div>
 
     <!-- Modal Retiro ACTUALIZADO -->
-    <div id="modalRetiro" class="modal">
-        <div class="modal-content">
-            <h2>Solicitar Retiro</h2>
-            <p>Saldo real disponible: <strong>C${{ usuario.saldo_real }}</strong></p>
-            <p style="font-size: 12px; color: #666;">El bono no es retirable</p>
-            
-            <label>Método de retiro:</label>
-            <select id="metodo" onchange="cambiarMetodo()">
-                <option value="tarjeta">Tarjeta débito/crédito</option>
-                <option value="billetera">Billetera móvil</option>
-                <option value="cuenta">Cuenta bancaria</option>
+    <!-- Modal Retiro CORREGIDO PARA BAMPRO MANUAL -->
+<div id="modalRetiro" class="modal">
+    <div class="modal-content">
+        <h2>Solicitar Retiro</h2>
+        <p>Saldo real disponible: <strong>C${{ usuario.saldo_real }}</strong></p>
+        <p style="font-size: 12px; color: #666;">El bono no es retirable. Mínimo: C$360</p>
+        
+        <div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin: 15px 0;">
+            <p style="font-size: 12px; color: #856404; margin: 0;">
+                <strong>⚠️ Importante:</strong> Los retiros son procesados manualmente por Zyronexa. 
+                Tiempo de acreditación: 1-7 días hábiles después de aprobado.
+            </p>
+        </div>
+        
+        <label>Método de retiro:</label>
+        <select id="metodo" onchange="cambiarMetodo()">
+            <option value="tarjeta">Tarjeta débito/crédito</option>
+            <option value="billetera">Billetera móvil</option>
+            <option value="cuenta">Cuenta bancaria</option>
+        </select>
+
+        <div id="campo-tarjeta">
+            <input type="text" id="numero_tarjeta" placeholder="1234 5678 9012 3456" maxlength="19">
+            <select id="banco_tarjeta">
+                <option>LAFISE</option>
+                <option>BAC</option>
+                <option>BANPRO</option>
+                <option>FICOHSA</option>
+                <option>AVANZ</option>
             </select>
+        </div>
 
-            <div id="campo-tarjeta">
-                <input type="text" id="numero_tarjeta" placeholder="1234 5678 9012 3456" maxlength="19">
-                <select id="banco_tarjeta">
-                    <option>LAFISE</option>
-                    <option>BAC</option>
-                    <option>BANPRO</option>
-                    <option>FICOHSA</option>
-                    <option>AVANZ</option>  <!-- Cambié BAMPRO por AVANZ para evitar confusión -->
-                </select>
-            </div>
+        <div id="campo-billetera" style="display:none">
+            <input type="text" id="celular" placeholder="88887777" maxlength="8">
+            <select id="billetera">
+                <option>Tigo Money</option>
+                <option>MiBilletera Banpro</option>
+                <option>Kiwi</option>
+            </select>
+        </div>
 
-            <div id="campo-billetera" style="display:none">
-                <input type="text" id="celular" placeholder="88887777" maxlength="8">
-                <select id="billetera">
-                    <option>Tigo Money</option>
-                    <option>MiBilletera Banpro</option>
-                    <option>Kiwi</option>
-                </select>
-            </div>
+        <div id="campo-cuenta" style="display:none">
+            <input type="text" id="numero_cuenta" placeholder="123456789">
+            <select id="banco_cuenta">
+                <option>LAFISE</option>
+                <option>BAC</option>
+                <option>BANPRO</option>
+                <option>FICOHSA</option>
+                <option>AVANZ</option>
+            </select>
+        </div>
 
-            <div id="campo-cuenta" style="display:none">
-                <input type="text" id="numero_cuenta" placeholder="123456789">
-                <select id="banco_cuenta">
-                    <option>LAFISE</option>
-                    <option>BAC</option>
-                    <option>BANPRO</option>
-                    <option>AVANZ</option>  <!-- Agregué AVANZ -->
-                </select>
-            </div>
-
-            <input type="text" id="nombre_titular" placeholder="Nombre del titular">
-            <input type="number" id="montoRetiro" placeholder="Monto a retirar (mín C$360)" min="360">
-            <p style="font-size: 12px; color: #666;">Comisión 10% - Se procesa en 1-7 días hábiles</p>
-            
-            <div class="modal-buttons">
-                <button class="btn" onclick="solicitarRetiro()">Confirmar</button>
-                <button class="btn" style="background: #ccc;" onclick="cerrarModal('modalRetiro')">Cancelar</button>
-            </div>
+        <input type="text" id="nombre_titular" placeholder="Nombre del titular" required>
+        <input type="text" id="cedula" placeholder="Cédula: 001-123456-0000A" maxlength="16">
+        <input type="number" id="montoRetiro" placeholder="Monto a retirar (mín C$360)" min="360" required>
+        <p style="font-size: 12px; color: #666;">Comisión 10% - Se descuenta automáticamente</p>
+        
+        <div class="modal-buttons">
+            <button class="btn" onclick="solicitarRetiro()">Confirmar Solicitud</button>
+            <button class="btn" style="background: #ccc;" onclick="cerrarModal('modalRetiro')">Cancelar</button>
         </div>
     </div>
+</div>
 
     <!-- Modal Deposito -->
     <div id="modalDeposito" class="modal">
