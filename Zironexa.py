@@ -1,7 +1,8 @@
 import os
 import stripe
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
-from datetime import datetime
+from datetime import datetime, timedelta
+import pytz
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from psycopg2 import errors
@@ -447,36 +448,49 @@ def comprar_plan():
 def compra_exitosa():
     return render_template("compra_exitosa.html")
 
+
+
 @app.route("/cobrar_recompensa", methods=["POST"])
 def cobrar_recompensa():
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
+    
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
     usuario = cursor.fetchone()
+    
     if usuario["producto_activo"] == 0:
         cursor.close()
         conexion.close()
         return jsonify({"error": "No tienes producto activo"}), 400
-    hoy = datetime.now().strftime('%Y-%m-%d')
-    if usuario["ultima_recompensa"] == hoy:
+
+    # SOLO AGREGAMOS ESTAS 4 LÍNEAS PARA EL TIMEZONE
+    nical_tz = pytz.timezone('America/Managua')
+    ahora_nical = datetime.now(nical_tz)
+    hoy_nical_str = ahora_nical.strftime('%Y-%m-%d')  # '2026-06-22'
+
+    if usuario["ultima_recompensa"] == hoy_nical_str:
         cursor.close()
         conexion.close()
-        return jsonify({"error": "Ya cobraste hoy. Vuelve mañana"}), 400
+        return jsonify({"error": "Ya cobraste hoy. Vuelve después de las 12:00am"}), 400
+
     ganancia_usuario = usuario["ganancia_diaria"]
     comision_propietario = int(ganancia_usuario * 0.10)
+    
+    # CAMBIAMOS SOLO ESTA LÍNEA: guardamos hoy_nical_str en vez de datetime.now()
     cursor.execute("""
         UPDATE usuarios SET saldo_real = saldo_real + %s, total_generado = total_generado + %s, ultima_recompensa = %s
         WHERE id = %s
-    """, (ganancia_usuario, ganancia_usuario, hoy, usuario["id"]))
+    """, (ganancia_usuario, ganancia_usuario, hoy_nical_str, usuario["id"]))
+    
     cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (comision_propietario, PROPIETARIO_TELEFONO))
     cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'ganancia', %s, 'Ganancia diaria', 'completado')", (usuario["telefono"], ganancia_usuario))
     cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'comision', %s, %s, 'completado')", (PROPIETARIO_TELEFONO, comision_propietario, f'Comisión 10% de {usuario["telefono"]}'))
     conexion.commit()
     cursor.close()
     conexion.close()
-    return jsonify({"success": True, "message": f"Ganaste C${ganancia_usuario}. Puedes cobrar todos los días"})
+    return jsonify({"success": True, "message": f"Ganaste C${ganancia_usuario}. Puedes cobrar todos los días"}) C${ganancia_usuario}. Puedes cobrar todos los días"})
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
