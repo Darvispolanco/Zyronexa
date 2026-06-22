@@ -205,10 +205,10 @@ def registro():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "GET":
-        # Si ya está logueado, mándalo al dashboard
-        if "usuario" in session:
-            return redirect("/dashboard")
+    if usuario and check_password_hash(usuario["contrasena"], contrasena):
+    session["usuario"] = dict(usuario)
+    session["usuario_id"] = usuario["id"]  # Esta línea es clave
+    return jsonify({"success": True, "redirect": "/dashboard"})
         # Si no, muestra el formulario de login
         return render_template("login.html")
     
@@ -234,59 +234,38 @@ def login():
     
     return jsonify({"success": False, "error": "Teléfono o contraseña incorrectos"}), 401
 
-@app.route('/dashboard', methods=['GET', 'POST']) 
+@app.route("/dashboard", methods=["GET"])
 def dashboard():
-    if 'usuario_id' not in session:
+    # Revisa las 2 keys posibles por si acaso
+    if "usuario" not in session and "usuario_id" not in session:
         return redirect('/login')
     
-    user_id = session['usuario_id']
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
-    usuario = cur.fetchone()
+    # Saca el ID de cualquiera de las 2
+    user_id = session.get("usuario_id") or session.get("usuario", {}).get("id")
     
-    # ESTE ES EL CHECK QUE TE FALTA
-    if usuario['es_propietario'] == True:
-        # Datos para el panel de admin
-        cur.execute("SELECT COUNT(*) as total FROM usuarios WHERE producto_activo > 0")
-        total_usuarios_activos = cur.fetchone()['total']
-        
-        cur.execute("SELECT SUM(monto_neto) as total FROM retiros WHERE estado = 'pendiente'")
-        total_pendiente = cur.fetchone()['total'] or 0
-        
-        cur.execute("SELECT * FROM retiros WHERE estado = 'pendiente' ORDER BY fecha DESC")
-        retiros_pendientes = cur.fetchall()
-        
-        cur.execute("SELECT * FROM retiros WHERE estado = 'pagado' AND DATE(fecha_pago) = CURRENT_DATE")
-        retiros_hoy = cur.fetchall()
-        
-        cur.execute("SELECT * FROM usuarios ORDER BY fecha_registro DESC")
-        todos_usuarios = cur.fetchall()
-        
-        stats = {
-            'total_ventas': calcular_total_ventas(),
-            'comisiones_diarias': calcular_comisiones_hoy(),
-            'total_usuarios_activos': total_usuarios_activos,
-            'total_hoy_bampro': sum([r['monto_neto'] for r in retiros_hoy]),
-            'limite_bampro': 2000
-        }
-        
-        return render_template('panel_propietario.html',
-                             propietario=usuario,
-                             stats=stats,
-                             retiros=retiros_pendientes,
-                             retiros_pendientes=retiros_pendientes,
-                             retiros_hoy=retiros_hoy,
-                             usuarios=todos_usuarios,
-                             historial=obtener_historial_propietario(),
-                             planes=PLANES)
+    if not user_id:
+        session.clear() # Limpia sesión corrupta
+        return redirect('/login')
+    
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
+    usuario = cursor.fetchone()
+    cursor.close()
+    conexion.close()
+    
+    if not usuario:
+        session.clear()
+        return redirect('/login')
+    
+    # Si es propietario, carga el panel de admin
+    if usuario.get('es_propietario') == True:
+        # ... tu código de stats, retiros, usuarios ...
+        return render_template('panel_propietario.html', propietario=usuario, ...)
     
     # Usuario normal
-    historial_user = obtener_historial_usuario(user_id)
-    return render_template('dashboard.html',
-                         usuario=usuario,
-                         historial=historial_user,
-                         planes=PLANES,
-                         stripe_key=STRIPE_PUBLISHABLE_KEY)
+    return render_template('dashboard.html', usuario=usuario, ...)
+    
 @app.route("/create-deposit-session", methods=["POST"])
 def create_deposit_session():
     if "usuario" not in session:
