@@ -623,28 +623,41 @@ def propietario_dashboard():
         retiros_hoy=retiros_hoy, planes=PLANES)
 
 @app.route("/marcar_pagado/<int:id>", methods=["POST"])
+@app.route("/marcar_pagado/<int:id>", methods=["POST"])
 def marcar_pagado(id):
     if "usuario" not in session or session["usuario"]["telefono"] != PROPIETARIO_TELEFONO:
         return jsonify({"error": "No autorizado"}), 401
-    notas = request.form.get('notas')
+
+    notas = request.form.get('notas', '')
     comprobante = request.files.get('comprobante')
     url_comprobante = None
-    if comprobante:
+
+    if comprobante and comprobante.filename != '':
         filename = secure_filename(f"retiro_{id}_{datetime.now().timestamp()}.jpg")
         path = os.path.join(UPLOAD_FOLDER, filename)
         comprobante.save(path)
         url_comprobante = f"/{path}"
+
     conexion = conectar_db()
     cursor = conexion.cursor()
+    
+    # ESTA ES LA PARTE CLAVE: solo actualiza si está pendiente
     cursor.execute("""
         UPDATE historial SET estado='pagado', fecha_pago=CURRENT_TIMESTAMP, notas_pago=%s, comprobante_url=%s
         WHERE id=%s AND estado='pendiente'
     """, (notas, url_comprobante, id))
+
+    # Si rowcount es 0, significa que ya estaba pagado o no existe
+    if cursor.rowcount == 0:
+        conexion.rollback()
+        cursor.close()
+        conexion.close()
+        return jsonify({"error": "Este retiro ya fue pagado o no existe"}), 400
+
     conexion.commit()
     cursor.close()
     conexion.close()
     return jsonify({"success": True})
-
 @app.route("/exportar_retiros_hoy")
 def exportar_retiros_hoy():
     if "usuario" not in session or session["usuario"]["telefono"] != PROPIETARIO_TELEFONO:
