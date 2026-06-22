@@ -623,8 +623,9 @@ def propietario_dashboard():
         retiros_hoy=retiros_hoy, planes=PLANES)
 
 @app.route("/marcar_pagado/<int:id>", methods=["POST"])
-@app.route("/marcar_pagado/<int:id>", methods=["POST"])
 def marcar_pagado(id):
+    print(f"=== MARCANDO PAGADO ID: {id} ===") # LOG 1
+    
     if "usuario" not in session or session["usuario"]["telefono"] != PROPIETARIO_TELEFONO:
         return jsonify({"error": "No autorizado"}), 401
 
@@ -641,22 +642,29 @@ def marcar_pagado(id):
     conexion = conectar_db()
     cursor = conexion.cursor()
     
-    # ESTA ES LA PARTE CLAVE: solo actualiza si está pendiente
+    # LOG 2: Ver estado actual antes de actualizar
+    cursor.execute("SELECT id, estado FROM historial WHERE id = %s", (id,))
+    antes = cursor.fetchone()
+    print(f"Estado antes: {antes}") 
+    
     cursor.execute("""
         UPDATE historial SET estado='pagado', fecha_pago=CURRENT_TIMESTAMP, notas_pago=%s, comprobante_url=%s
         WHERE id=%s AND estado='pendiente'
     """, (notas, url_comprobante, id))
-
-    # Si rowcount es 0, significa que ya estaba pagado o no existe
+    
+    print(f"Filas afectadas: {cursor.rowcount}") # LOG 3
+    
     if cursor.rowcount == 0:
         conexion.rollback()
         cursor.close()
         conexion.close()
+        print("ERROR: No se actualizó nada") 
         return jsonify({"error": "Este retiro ya fue pagado o no existe"}), 400
 
     conexion.commit()
     cursor.close()
     conexion.close()
+    print("SUCCESS: Actualizado correctamente")
     return jsonify({"success": True})
 @app.route("/exportar_retiros_hoy")
 def exportar_retiros_hoy():
