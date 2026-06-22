@@ -223,27 +223,59 @@ def login():
         return jsonify({"success": True, "redirect": "/dashboard"})
     return jsonify({"success": False, "error": "Teléfono o contraseña incorrectos"}), 401
 
-@app.route("/dashboard")
+@app.route('/dashboard')
 def dashboard():
-    if "usuario" not in session:
-        return redirect(url_for("index"))
-    conexion = conectar_db()
-    cursor = conexion.cursor(cursor_factory=RealDictCursor)
-    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
-    usuario = cursor.fetchone()
-    if not usuario:
-        cursor.close()
-        conexion.close()
-        session.clear()
-        return redirect(url_for("index"))
-    session["usuario"] = dict(usuario)
-    cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 10", (usuario["telefono"],))
-    historial = cursor.fetchall()
-    cursor.close()
-    conexion.close()
-    usuario["saldo_total"] = usuario["saldo_real"] + usuario["saldo_bono"]
-    return render_template("usuario.html", usuario=usuario, historial=historial, stripe_key=STRIPE_PUBLISHABLE_KEY, planes=PLANES)
-
+    if 'usuario_id' not in session:
+        return redirect('/login')
+    
+    user_id = session['usuario_id']
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
+    usuario = cur.fetchone()
+    
+    # ESTE ES EL CHECK QUE TE FALTA
+    if usuario['es_propietario'] == True:
+        # Datos para el panel de admin
+        cur.execute("SELECT COUNT(*) as total FROM usuarios WHERE producto_activo > 0")
+        total_usuarios_activos = cur.fetchone()['total']
+        
+        cur.execute("SELECT SUM(monto_neto) as total FROM retiros WHERE estado = 'pendiente'")
+        total_pendiente = cur.fetchone()['total'] or 0
+        
+        cur.execute("SELECT * FROM retiros WHERE estado = 'pendiente' ORDER BY fecha DESC")
+        retiros_pendientes = cur.fetchall()
+        
+        cur.execute("SELECT * FROM retiros WHERE estado = 'pagado' AND DATE(fecha_pago) = CURRENT_DATE")
+        retiros_hoy = cur.fetchall()
+        
+        cur.execute("SELECT * FROM usuarios ORDER BY fecha_registro DESC")
+        todos_usuarios = cur.fetchall()
+        
+        stats = {
+            'total_ventas': calcular_total_ventas(),
+            'comisiones_diarias': calcular_comisiones_hoy(),
+            'total_usuarios_activos': total_usuarios_activos,
+            'total_hoy_bampro': sum([r['monto_neto'] for r in retiros_hoy]),
+            'limite_bampro': 2000
+        }
+        
+        return render_template('panel_propietario.html',
+                             propietario=usuario,
+                             stats=stats,
+                             retiros=retiros_pendientes,
+                             retiros_pendientes=retiros_pendientes,
+                             retiros_hoy=retiros_hoy,
+                             usuarios=todos_usuarios,
+                             historial=obtener_historial_propietario(),
+                             planes=PLANES)
+    
+    # Usuario normal
+    historial_user = obtener_historial_usuario(user_id)
+    return render_template('dashboard.html',
+                         usuario=usuario,
+                         historial=historial_user,
+                         planes=PLANES,
+                         stripe_key=STRIPE_PUBLISHABLE_KEY)
 @app.route("/create-deposit-session", methods=["POST"])
 def create_deposit_session():
     if "usuario" not in session:
