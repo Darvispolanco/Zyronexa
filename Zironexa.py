@@ -203,11 +203,20 @@ def registro():
         cursor.close()
         conexion.close()
 
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
+    if request.method == "GET":
+        # Si ya está logueado, mándalo al dashboard
+        if "usuario" in session:
+            return redirect("/dashboard")
+        # Si no, muestra el formulario de login
+        return render_template("login.html")
+    
+    # Si es POST, procesa el login
     datos = request.get_json(silent=True) or request.form
     telefono = datos.get("telefono", "").strip()
     contrasena = datos.get("password") or datos.get("contrasena", "")
+    
     if not telefono or not contrasena:
         return jsonify({"success": False, "error": "Todos los campos son obligatorios"}), 400
 
@@ -220,10 +229,12 @@ def login():
 
     if usuario and check_password_hash(usuario["contrasena"], contrasena):
         session["usuario"] = dict(usuario)
+        session["usuario_id"] = usuario["id"]  # <- Agrega esto también
         return jsonify({"success": True, "redirect": "/dashboard"})
+    
     return jsonify({"success": False, "error": "Teléfono o contraseña incorrectos"}), 401
 
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET', 'POST']) 
 def dashboard():
     if 'usuario_id' not in session:
         return redirect('/login')
