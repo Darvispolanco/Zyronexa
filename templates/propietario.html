@@ -616,28 +616,100 @@
     </div>
 
     <div id="historial" class="tab-content historial-section">
-        <h2 class="section-title">Historial de Ingresos</h2>
-        {% if historial %}
-        {% for item in historial %}
-        <div class="historial-item">
-            <div>
-                <span class="tipo-{{ item.tipo }}">{{ item.tipo.upper() }}</span>
-                <p>
-                    {{ item.descripcion }}
-                </p>
-                <small>{{ item.fecha }}</small>
-            </div>
-            <div style="font-size: 20px; font-weight: bold; color: #27ae60;">
-                +C${{ "{:,}".format(item.monto) }}
-            </div>
+    <h2 class="section-title">Historial de Ingresos</h2>
+    {% if historial %}
+    <table class="tabla-usuarios">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Descripción</th>
+                <th>Compra</th>
+                <th>Venta</th>
+                <th>Comisión</th>
+                <th>Retiro</th>
+                <th>Depósito</th>
+                <th>Ganancia</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in historial %}
+            <tr>
+                <td>{{ item.fecha }}</td>
+                <td>{{ item.descripcion }}</td>
+                
+                <!-- Compra -->
+                <td>
+                    {% if item.tipo == 'compra' %}
+                    <span style="color: #e74c3c; font-weight: bold;">-C${{ "{:,}".format(item.monto) }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                
+                <!-- Venta -->
+                <td>
+                    {% if item.tipo == 'venta' %}
+                    <span style="color: #27ae60; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                
+                <!-- Comisión -->
+                <td>
+                    {% if item.tipo == 'comision' %}
+                    <span style="color: #9b59b6; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                
+                <!-- Retiro -->
+                <td>
+                    {% if item.tipo == 'retiro' %}
+                    <span style="color: #e74c3c; font-weight: bold;">-C${{ "{:,}".format(item.monto) }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                
+                <!-- Depósito -->
+                <td>
+                    {% if item.tipo == 'deposito' %}
+                    <span style="color: #3498db; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                
+                <!-- Ganancia -->
+                <td>
+                    {% if item.tipo == 'ganancia' %}
+                    <span style="color: #27ae60; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
             {% endfor %}
-            {% else %}
-            <p style="text-align: center; color: #999;">
-                No hay movimientos aún
-            </p>
-            {% endif %}
-        </div>
-    </div>
+
+<tr style="background: #2c5364; color: white; font-weight: bold;">
+    <td colspan="2">TOTALES</td>
+    <td>-C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'compra')|sum(attribute='monto')) }}</td>
+    <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'venta')|sum(attribute='monto')) }}</td>
+    <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'comision')|sum(attribute='monto')) }}</td>
+    <td>-C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'retiro')|sum(attribute='monto')) }}</td>
+    <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'deposito')|sum(attribute='monto')) }}</td>
+    <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'ganancia')|sum(attribute='monto')) }}</td>
+</tr>
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999;">
+        No hay movimientos aún
+    </p>
+    {% endif %}
+</div>
 
     <!-- Modal Retiro Propietario -->
     <div id="modalRetiro" class="modal">
