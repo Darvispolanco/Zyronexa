@@ -465,10 +465,9 @@ def cobrar_recompensa():
         conexion.close()
         return jsonify({"error": "No tienes producto activo"}), 400
 
-    # SOLO AGREGAMOS ESTAS 4 LÍNEAS PARA EL TIMEZONE
+    # Fix timezone Nicaragua - no toca tu BD
     nical_tz = pytz.timezone('America/Managua')
-    ahora_nical = datetime.now(nical_tz)
-    hoy_nical_str = ahora_nical.strftime('%Y-%m-%d')  # '2026-06-22'
+    hoy_nical_str = datetime.now(nical_tz).strftime('%Y-%m-%d')
 
     if usuario["ultima_recompensa"] == hoy_nical_str:
         cursor.close()
@@ -478,7 +477,6 @@ def cobrar_recompensa():
     ganancia_usuario = usuario["ganancia_diaria"]
     comision_propietario = int(ganancia_usuario * 0.10)
     
-    # CAMBIAMOS SOLO ESTA LÍNEA: guardamos hoy_nical_str en vez de datetime.now()
     cursor.execute("""
         UPDATE usuarios SET saldo_real = saldo_real + %s, total_generado = total_generado + %s, ultima_recompensa = %s
         WHERE id = %s
@@ -490,7 +488,7 @@ def cobrar_recompensa():
     conexion.commit()
     cursor.close()
     conexion.close()
-    return jsonify({"success": True, "message": f"Ganaste"} C${ganancia_usuario}. "Puedes cobrar todos los días")
+    return jsonify({"success": True, "message": f"Ganaste C${ganancia_usuario}. Puedes cobrar todos los días"})
 @app.route("/webhook", methods=["POST"])
 def webhook():
     payload = request.data
