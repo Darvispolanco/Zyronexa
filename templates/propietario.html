@@ -705,33 +705,38 @@
         }
 
         function abrirModalPago(id, nombre, monto) {
+            console.log('Abriendo modal para ID:', id); // Para debug
             retiroActualId = id;
             document.getElementById('infoPago').innerHTML = `<strong>${nombre}</strong> - C$${monto}`;
             document.getElementById('notasPago').value = '';
             document.getElementById('comprobantePago').value = '';
             document.getElementById('modalPago').style.display = 'flex';
         }
-
         async function confirmarPago() {
+            console.log('Confirmando pago para ID:', retiroActualId); // Para debug
             const notas = document.getElementById('notasPago').value;
             const comprobante = document.getElementById('comprobantePago').files[0];
-
+            
             if (!notas) {
                 mostrarAlerta('Agrega las notas del pago', 'error');
                 return;
             }
 
+            if (!retiroActualId) {
+                mostrarAlerta('Error: No se seleccionó retiro', 'error');
+                return;
+            }
             const formData = new FormData();
             formData.append('notas', notas);
             if (comprobante) formData.append('comprobante', comprobante);
-
+            
             try {
                 const response = await fetch('/marcar_pagado/' + retiroActualId, {
                     method: 'POST',
                     body: formData
                 });
                 const data = await response.json();
-
+                
                 if (data.success) {
                     mostrarAlerta('Retiro marcado como pagado', 'success');
                     cerrarModal('modalPago');
@@ -740,6 +745,7 @@
                     mostrarAlerta(data.error || 'Error', 'error');
                 }
             } catch (error) {
+                console.error('Error:', error);
                 mostrarAlerta('Error al procesar', 'error');
             }
         }
