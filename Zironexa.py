@@ -852,33 +852,37 @@ def obtener_video_limpio(url_tiktok):
     except:
         return None, None
 
-@app.route("/proponer_video", methods=["POST"])
+@app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
     if "usuario" not in session:
-        return redirect(url_for('index'))
+        return redirect(url_for('index', next='proponer_video'))
     
+    # GET = mostrar formulario
+    if request.method == "GET":
+        return render_template("proponer_video.html")
+    
+    # POST = procesar el video
     url_tiktok = request.form['url_tiktok']
     telefono = session["usuario"]["telefono"]
     
     url_limpia, titulo = obtener_video_limpio(url_tiktok)
     
     if not url_limpia:
-        flash("Error al procesar el video de TikTok")
-        return redirect(url_for('home'))
+        flash("No se pudo procesar el video. Verifica el link")
+        return redirect(url_for('proponer_video'))
     
     conexion = conectar_db()
     cursor = conexion.cursor()
     cursor.execute("""
         INSERT INTO videos (telefono_creador, url_video, titulo, estado) 
         VALUES (%s, %s, %s, %s)
-    """, (telefono, url_limpia, titulo, 'propuesto'))
+    """, (telefono, url_limpia, titulo, 'aprobado'))
     conexion.commit()
     cursor.close()
     conexion.close()
     
-    flash("Video propuesto. Esperando aprobación")
+    flash("Video propuesto con éxito")
     return redirect(url_for('videos'))
-
 @app.route("/perfil")
 def mi_perfil():
     if "usuario" not in session:
