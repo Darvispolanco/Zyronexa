@@ -866,29 +866,24 @@ def mi_perfil():
         return redirect(url_for('index', next='perfil'))
     
     user_id = session.get("usuario_id") or session.get("usuario", {}).get("id")
-    telefono = session["usuario"]["telefono"]
     
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     
-    # Datos del usuario
+    # Solo datos del usuario por ahora
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
     usuario = cursor.fetchone()
     
-    # Stats de videos
-    cursor.execute("""
-        SELECT 
-            COUNT(*) FILTER (WHERE estado = 'aprobado') as videos_aprobados,
-            COUNT(*) FILTER (WHERE estado = 'pendiente') as videos_pendientes,
-            COUNT(*) FILTER (WHERE estado = 'rechazado') as videos_rechazados,
-            COUNT(*) as total_videos
-        FROM videos 
-        WHERE telefono_creador = %s
-    """, (telefono,))
-    stats_videos = cursor.fetchone()
-    
     cursor.close()
     conexion.close()
+    
+    # Stats falsas temporalmente hasta que crees la tabla videos
+    stats_videos = {
+        'videos_aprobados': 0,
+        'videos_pendientes': 0,
+        'videos_rechazados': 0,
+        'total_videos': 0
+    }
     
     return render_template("perfil.html", 
         usuario=usuario,
