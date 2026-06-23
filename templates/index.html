@@ -119,6 +119,27 @@ header{
     margin-bottom:20px;
 }
 
+.alert {
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 14px;
+    display: none;
+}
+
+.alert-error {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+}
+
+.alert-info {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    color: #93c5fd;
+}
+
 input{
     width:100%;
     padding:15px;
@@ -146,6 +167,14 @@ button{
 button:hover{
     transform:scale(1.03);
     background:#b91c1c;
+}
+
+.btn-secondary{
+    background:rgba(255,255,255,0.1);
+}
+
+.btn-secondary:hover{
+    background:rgba(255,255,255,0.15);
 }
 
 .features{
@@ -244,88 +273,6 @@ footer{
     }
 }
 </style>
-
-<script>
-function mostrarRegistro(){
-    document.getElementById("inicioBox").style.display = "none";
-    document.getElementById("registroBox").style.display = "block";
-    document.getElementById("loginBox").style.display = "none";
-}
-
-function mostrarLogin(){
-    document.getElementById("inicioBox").style.display = "none";
-    document.getElementById("registroBox").style.display = "none";
-    document.getElementById("loginBox").style.display = "block";
-}
-
-function volverInicio(){
-    document.getElementById("inicioBox").style.display = "block";
-    document.getElementById("registroBox").style.display = "none";
-    document.getElementById("loginBox").style.display = "none";
-}
-
-async function registrar(){
-    const nombre = document.getElementById("nombre").value.trim();
-    const telefono = document.getElementById("telefono").value.trim();
-    const password = document.getElementById("password").value;
-
-    if(!nombre ||!telefono ||!password){
-        alert("Todos los campos son obligatorios");
-        return;
-    }
-
-    const datos = { nombre, telefono, password };
-
-    try {
-        const respuesta = await fetch("/registro", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(datos)
-        });
-
-        const resultado = await respuesta.json();
-
-        if(resultado.success){
-            window.location.href = resultado.redirect;
-        } else {
-            alert(resultado.error || "Error al registrarse");
-        }
-    } catch (error) {
-        alert("Error de conexión con el servidor");
-    }
-}
-
-async function iniciarSesion(){
-    const telefono = document.getElementById("loginTelefono").value.trim();
-    const password = document.getElementById("loginPassword").value;
-
-    if(!telefono ||!password){
-        alert("Todos los campos son obligatorios");
-        return;
-    }
-
-    const datos = { telefono, password };
-
-    try {
-        const respuesta = await fetch("/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(datos)
-        });
-
-        const resultado = await respuesta.json();
-
-        if(resultado.success){
-            window.location.href = resultado.redirect;
-        } else {
-            alert(resultado.error || "Error al iniciar sesión");
-        }
-    } catch (error) {
-        alert("Error de conexión con el servidor");
-    }
-}
-</script>
-
 </head>
 <body>
 
@@ -347,6 +294,7 @@ de manera moderna y segura desde cualquier dispositivo.
 
 <div id="inicioBox" class="auth-box">
     <h2>Bienvenido a Zyronexa</h2>
+    <div id="alertInicio" class="alert alert-info" style="display:none;"></div>
     <p style="text-align:center; opacity:0.8;">
     Accede o crea una cuenta para comenzar.
     </p>
@@ -356,19 +304,21 @@ de manera moderna y segura desde cualquier dispositivo.
 
 <div id="registroBox" class="auth-box" style="display:none;">
     <h2>Crear Cuenta</h2>
+    <div id="alertRegistro" class="alert alert-error"></div>
     <input type="text" id="nombre" placeholder="Nombre completo" required>
     <input type="text" id="telefono" placeholder="Numero de telefono" required>
     <input type="password" id="password" placeholder="Contrasena" required>
     <button onclick="registrar()">Registrarse y recibir 500 NIO</button>
-    <button onclick="volverInicio()">Volver</button>
+    <button class="btn-secondary" onclick="volverInicio()">Volver</button>
 </div>
 
 <div id="loginBox" class="auth-box" style="display:none;">
     <h2>Iniciar Sesion</h2>
+    <div id="alertLogin" class="alert alert-error"></div>
     <input type="text" id="loginTelefono" placeholder="Numero de telefono registrado" required>
     <input type="password" id="loginPassword" placeholder="Contrasena" required>
     <button onclick="iniciarSesion()">Entrar</button>
-    <button onclick="volverInicio()">Volver</button>
+    <button class="btn-secondary" onclick="volverInicio()">Volver</button>
 </div>
 
 <section class="features">
@@ -464,6 +414,109 @@ de manera moderna y segura desde cualquier dispositivo.
 <footer>
 © Zyronexa 2026
 </footer>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const nextUrl = urlParams.get('next');
+
+// Si viene con ?next=home o ?next=perfil, muestra mensaje y abre login directo
+window.onload = function() {
+    if (nextUrl) {
+        const alertInicio = document.getElementById('alertInicio');
+        alertInicio.textContent = 'Inicia sesión para continuar';
+        alertInicio.style.display = 'block';
+        mostrarLogin();
+    }
+};
+
+function mostrarRegistro(){
+    document.getElementById("inicioBox").style.display = "none";
+    document.getElementById("registroBox").style.display = "block";
+    document.getElementById("loginBox").style.display = "none";
+}
+
+function mostrarLogin(){
+    document.getElementById("inicioBox").style.display = "none";
+    document.getElementById("registroBox").style.display = "none";
+    document.getElementById("loginBox").style.display = "block";
+}
+
+function volverInicio(){
+    document.getElementById("inicioBox").style.display = "block";
+    document.getElementById("registroBox").style.display = "none";
+    document.getElementById("loginBox").style.display = "none";
+}
+
+function mostrarAlerta(id, mensaje) {
+    const alert = document.getElementById(id);
+    alert.textContent = mensaje;
+    alert.style.display = 'block';
+    setTimeout(() => alert.style.display = 'none', 4000);
+}
+
+async function registrar(){
+    const nombre = document.getElementById("nombre").value.trim();
+    const telefono = document.getElementById("telefono").value.trim();
+    const password = document.getElementById("password").value;
+
+    if(!nombre ||!telefono ||!password){
+        mostrarAlerta("alertRegistro", "Todos los campos son obligatorios");
+        return;
+    }
+
+    const datos = { nombre, telefono, contrasena: password };
+    const endpoint = nextUrl ? `/registro?next=${nextUrl}` : '/registro';
+
+    try {
+        const respuesta = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datos)
+        });
+
+        const resultado = await respuesta.json();
+
+        if(resultado.success){
+            window.location.href = resultado.redirect;
+        } else {
+            mostrarAlerta("alertRegistro", resultado.error || "Error al registrarse");
+        }
+    } catch (error) {
+        mostrarAlerta("alertRegistro", "Error de conexión con el servidor");
+    }
+}
+
+async function iniciarSesion(){
+    const telefono = document.getElementById("loginTelefono").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    if(!telefono ||!password){
+        mostrarAlerta("alertLogin", "Todos los campos son obligatorios");
+        return;
+    }
+
+    const datos = { telefono, password };
+    const endpoint = nextUrl ? `/login?next=${nextUrl}` : '/login';
+
+    try {
+        const respuesta = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datos)
+        });
+
+        const resultado = await respuesta.json();
+
+        if(resultado.success){
+            window.location.href = resultado.redirect;
+        } else {
+            mostrarAlerta("alertLogin", resultado.error || "Error al iniciar sesión");
+        }
+    } catch (error) {
+        mostrarAlerta("alertLogin", "Error de conexión con el servidor");
+    }
+}
+</script>
 
 </body>
 </html>
