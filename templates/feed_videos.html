@@ -161,13 +161,6 @@ function reportarVideo(video_id) {
        .then(() => alert('Video reportado. Lo revisaremos en 24h.'));
     }
 }
-function irAPerfil() {
-    {% if session.get('usuario') %}
-        window.location.href = '/perfil'; // Sin teléfono
-    {% else %}
-        window.location.href = '/?next=perfil';
-    {% endif %}
-}
 </script>
 </body>
 </html>
