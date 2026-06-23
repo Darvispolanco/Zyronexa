@@ -47,6 +47,22 @@ PLANES = {
     10: {"nombre": "Plan Zyronexa Elite", "precio": 1000000, "ganancia_diaria": 100000, "porcentaje": 10.0}
 }
 
+# CONFIG VIDEOS - TODAS LAS PLATAFORMAS
+PLATAFORMAS = {
+    'tiktok': {'dominios': ['tiktok.com'], 'regex': r'/video/(\d+)'},
+    'youtube': {'dominios': ['youtube.com', 'youtu.be'], 'regex': [r'v=([A-Za-z0-9_-]{11})', r'youtu\.be/([A-Za-z0-9_-]{11})']},
+    'instagram': {'dominios': ['instagram.com'], 'regex': r'/reel/([A-Za-z0-9_-]+)'},
+    'facebook': {'dominios': ['facebook.com', 'fb.watch'], 'regex': [r'v=(\d+)', r'fb\.watch/([A-Za-z0-9_-]+)']},
+    'vimeo': {'dominios': ['vimeo.com'], 'regex': r'vimeo\.com/(\d+)'},
+    'twitch': {'dominios': ['twitch.tv'], 'regex': r'/videos/(\d+)'},
+    'kwai': {'dominios': ['kwai.com', 'kuaishou.com'], 'regex': r'/video/([A-Za-z0-9_-]+)'}
+}
+
+PALABRAS_BLOQUEADAS = [
+    'xxx','porn','sex','porno','desnuda','desnudo','erotic','escort','caliente',
+    'onlyfans','fansly','chaturbate','cam4','brazzers','youporn','xvideos','xnxx',
+    'casino','apuesta','apuestas','binarias','forex','crypto','telegram','whatsapp'
+]
 def conectar_db():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
 
@@ -89,6 +105,18 @@ def crear_base_datos():
             fecha_pago TIMESTAMP,
             notas_pago TEXT,
             comprobante_url TEXT
+        );
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS videos_feed (
+            id SERIAL PRIMARY KEY,
+            telefono_creador VARCHAR(20) NOT NULL,
+            video_id VARCHAR(100) NOT NULL,
+            plataforma VARCHAR(20) NOT NULL,
+            categoria VARCHAR(50) NOT NULL,
+            titulo VARCHAR(100),
+            estado VARCHAR(20) DEFAULT 'pendiente',
+            fecha_creado TIMESTAMP DEFAULT NOW()
         );
     """)
     cursor.execute("""
@@ -143,13 +171,41 @@ def crear_base_datos():
     conexion.close()
 
 crear_base_datos()
-
+def obtener_saldo(telefono):
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT saldo_real FROM usuarios WHERE telefono = %s", (telefono,))
+    result = cursor.fetchone()
+    cursor.close()
+    conexion.close()
+    return result[0] if result else 0
+def extraer_id_video(url):
+    url = url.lower().strip()
+    if any(p in url for p in PALABRAS_BLOQUEADAS):
+        return None, None, "Link contiene contenido prohibido"
+    for plataforma, data in PLATAFORMAS.items():
+        if any(d in url for d in data['dominios']):
+            regex_list = data['regex'] if isinstance(data['regex'], list) else [data['regex']]
+            for regex in regex_list:
+                match = re.search(regex, url)
+                if match:
+                    return match.group(1), plataforma, None
+            return None, None, f"Link de {plataforma} inválido"
+    return None, None, "Plataforma no soportada. Usa: TikTok, YouTube, Instagram, Facebook, Vimeo, Twitch o Kwai"
 @app.route("/")
 def index():
+    # Si ya está logueado, lo mandamos al feed
     if "usuario" in session:
-        return redirect(url_for("dashboard"))
+        next_url = request.args.get('next')
+        if next_url:
+            if not next_url.startswith('/'):
+                next_url = '/' + next_url
+            return redirect(next_url)
+        return redirect(url_for("videos"))
+    
+    # Si no está logueado, muestra index.html con login/registro
     return render_template("index.html")
-
+    
 @app.route("/registro", methods=["POST"])
 def registro():
     datos = request.get_json(silent=True) or request.form
@@ -176,14 +232,14 @@ def registro():
         conexion.commit()
         session["usuario"] = dict(usuario)
         session["usuario_id"] = usuario["id"]
-        return jsonify({"success": True, "redirect": "/dashboard", "message": "Registro exitoso. Recibiste C$500 de bono"})
+        return jsonify({"success": True, "redirect": "/videos", "message": "Registro exitoso. Recibiste C$500 de bono"})
     except errors.UniqueViolation:
         conexion.rollback()
         return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
     except psycopg2.Error as e:
         conexion.rollback()
         print("ERROR DB:", str(e))
-        return jsonify({"success": False, "error": "Error de base de datos"}), 500
+        return jsonify({"success": True, "redirect": "/videos", "message": "Registro exitoso. Recibiste C$500 de bono"})
     finally:
         cursor.close()
         conexion.close()
@@ -192,8 +248,11 @@ def registro():
 def login():
     if request.method == "GET":
         if "usuario" in session:
-            return redirect("/dashboard")
-        return render_template("login.html")
+            next_url = request.args.get('next', 'videos')
+            if not next_url.startswith('/'):
+                next_url = '/' + next_url
+            return redirect(next_url)
+        return render_template("index.html")
     
     datos = request.get_json(silent=True) or request.form
     telefono = datos.get("telefono", "").strip()
@@ -209,17 +268,21 @@ def login():
     if usuario and check_password_hash(usuario["contrasena"], contrasena):
         session["usuario"] = dict(usuario)
         session["usuario_id"] = usuario["id"]
-        return jsonify({"success": True, "redirect": "/dashboard"})
+        next_url = request.args.get('next', 'videos')  # <-- quité 1 tab
+        if not next_url.startswith('/'):
+            next_url = '/' + next_url
+        return jsonify({"success": True, "redirect": next_url})
     return jsonify({"success": False, "error": "Teléfono o contraseña incorrectos"}), 401
 
-@app.route("/dashboard", methods=["GET"])
-def dashboard():
-    if "usuario" not in session and "usuario_id" not in session:
-        return redirect('/login')
+@app.route("/home")
+def home():
+    if "usuario" not in session:
+        return redirect(url_for('index', next='home'))
+    
     user_id = session.get("usuario_id") or session.get("usuario", {}).get("id")
     if not user_id:
         session.clear()
-        return redirect('/login')
+        return redirect(url_for('index', next='home'))
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
@@ -232,10 +295,9 @@ def dashboard():
     if usuario.get('es_admin') == 1:
         return redirect(url_for("propietario_dashboard"))
     
-    # ARREGLA EL SALDO VACÍO
     usuario['saldo_total'] = (usuario['saldo_real'] or 0) + (usuario['saldo_bono'] or 0)
     
-    return render_template('usuario.html', usuario=usuario, planes=PLANES, stripe_key=STRIPE_PUBLISHABLE_KEY or "")
+    return render_template('inversion.html', usuario=usuario, planes=PLANES, stripe_key=STRIPE_PUBLISHABLE_KEY or "")
 @app.route("/create-deposit-session", methods=["POST"])
 def create_deposit_session():
     if "usuario" not in session:
@@ -592,7 +654,7 @@ def retirar_propietario():
 
 @app.route("/propietario")
 def propietario_dashboard():
-    if "usuario" not in session or session["usuario"]["telefono"] != PROPIETARIO_TELEFONO:
+    if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
         return redirect(url_for("index"))
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
@@ -619,7 +681,23 @@ def propietario_dashboard():
         FROM historial WHERE tipo='retiro' AND estado='pagado' AND DATE(fecha_pago)=CURRENT_DATE
     """)
     total_hoy = cursor.fetchone()['total'] or 0
-    cursor.execute("SELECT * FROM usuarios WHERE telefono != %s ORDER BY id DESC", (PROPIETARIO_TELEFONO,))
+
+    # VIDEOS - AGREGADO
+    cursor.execute("""
+        SELECT v.*, u.nombre FROM videos_feed v
+        JOIN usuarios u ON v.telefono_creador = u.telefono
+        WHERE v.estado = 'pendiente' ORDER BY v.fecha_creado DESC
+    """)
+    videos_pendientes = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT v.*, u.nombre FROM videos_feed v
+        JOIN usuarios u ON v.telefono_creador = u.telefono
+        WHERE v.estado = 'reportado' ORDER BY v.fecha_creado DESC
+    """)
+    videos_reportados = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM usuarios WHERE telefono!= %s ORDER BY id DESC", (PROPIETARIO_TELEFONO,))
     usuarios = cursor.fetchall()
     cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 20", (PROPIETARIO_TELEFONO,))
     historial = cursor.fetchall()
@@ -632,9 +710,18 @@ def propietario_dashboard():
         "total_hoy_bampro": total_hoy,
         "limite_bampro": LIMITE_DIARIO_BAMPRO
     }
-    return render_template("propietario.html", propietario=propietario, stats=stats, usuarios=usuarios,
-        historial=historial, retiros=retiros, retiros_pendientes=retiros_pendientes,
-        retiros_hoy=retiros_hoy, planes=PLANES)
+    return render_template("propietario.html",
+        propietario=propietario,
+        stats=stats,
+        usuarios=usuarios,
+        historial=historial,
+        retiros=retiros,
+        retiros_pendientes=retiros_pendientes,
+        retiros_hoy=retiros_hoy,
+        planes=PLANES,
+        videos_pendientes=videos_pendientes,
+        videos_reportados=videos_reportados
+    )
 
 @app.route("/marcar_pagado/<int:id>", methods=["POST"])
 def marcar_pagado(id):
@@ -724,6 +811,125 @@ def sync_ganancias_admin():
 def logout():
     session.clear()
     return redirect(url_for("index"))
+    
+@app.route("/videos")
+def videos():
+    categoria = request.args.get("cat", "motivacion")
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+    cursor.execute("""
+        SELECT id, video_id, plataforma, titulo, telefono_creador
+        FROM videos_feed
+        WHERE estado = 'aprobado' AND categoria = %s
+        ORDER BY fecha_creado DESC LIMIT 20
+    """, (categoria,))
+    videos_db = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+    return render_template("feed_videos.html", videos=videos_db, cat_actual=categoria)
+
+@app.route("/proponer_video", methods=["GET", "POST"])
+def proponer_video():
+    if "usuario" not in session:
+        return redirect("/login")
+
+    if obtener_saldo(session["usuario"]["telefono"]) < 100:
+        return "Solo miembros con C$100+ invertidos pueden promocionar videos", 403
+
+    if request.method == "POST":
+        url = request.form.get("url", "").strip()
+        titulo = request.form.get("titulo", "").strip()[:100]
+        categoria = request.form.get("categoria")
+
+        if any(p in titulo.lower() for p in PALABRAS_BLOQUEADAS):
+            return "Título contiene palabras prohibidas", 400
+
+        video_id, plataforma, error = extraer_id_video(url)
+        if error:
+            return error, 400
+
+        conexion = conectar_db()
+        cursor = conexion.cursor()
+        cursor.execute("""
+            INSERT INTO videos_feed (telefono_creador, video_id, plataforma, categoria, titulo, estado)
+            VALUES (%s, %s, %s, %s, %s, 'pendiente')
+        """, (session["usuario"]["telefono"], video_id, plataforma, categoria, titulo))
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        return "Video enviado a revisión. Aparecerá en 24h si es aprobado."
+
+    return render_template("proponer_video.html")
+
+@app.route("/perfil/<telefono>")
+def perfil(telefono):
+    if "usuario" not in session:
+        return redirect(url_for('index', next=f'perfil/{telefono}'))
+    
+    conexion = conectar_db()
+    # ... resto igual
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+
+    cursor.execute("SELECT telefono, fecha_registro, total_depositado FROM usuarios WHERE telefono = %s", (telefono,))
+    datos_user = cursor.fetchone()
+    if not datos_user:
+        return "Usuario no encontrado", 404
+
+    usuario = {"telefono": datos_user["telefono"], "fecha_creado": datos_user["fecha_registro"], "total_depositado": datos_user["total_depositado"]}
+
+    cursor.execute("""
+        SELECT video_id, plataforma FROM videos_feed
+        WHERE telefono_creador = %s AND estado = 'aprobado'
+        ORDER BY fecha_creado DESC LIMIT 30
+    """, (telefono,))
+    urls_videos = cursor.fetchall()
+
+    cursor.close()
+    conexion.close()
+    return render_template("perfil.html",
+                          usuario=usuario,
+                          videos_propuestos=len(urls_videos),
+                          urls_videos=urls_videos)
+
+@app.route("/reportar_video/<int:video_id>", methods=["POST"])
+def reportar_video(video_id):
+    if "usuario" not in session:
+        return jsonify({"error": "Login"}), 401
+
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+    cursor.execute("""
+        UPDATE videos_feed SET estado = 'reportado'
+        WHERE id = %s AND estado = 'aprobado'
+    """, (video_id,))
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    return jsonify({"ok": True})
+    
+@app.route("/aprobar_video/<int:id>", methods=["POST"])
+def aprobar_video(id):
+    if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
+        return jsonify({"error": "No autorizado"}), 401
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE videos_feed SET estado = 'aprobado' WHERE id = %s", (id,))
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    return jsonify({"success": True})
+
+@app.route("/rechazar_video/<int:id>", methods=["POST"])
+def rechazar_video(id):
+    if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
+        return jsonify({"error": "No autorizado"}), 401
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+    cursor.execute("DELETE FROM videos_feed WHERE id = %s", (id,))
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run(debug=True)
