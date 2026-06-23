@@ -843,13 +843,22 @@ def videos():
 
 
 def obtener_video_limpio(url_tiktok):
+    import requests
     api_url = f"https://www.tikwm.com/api/?url={url_tiktok}"
     try:
-        response = requests.get(api_url, timeout=10).json()
-        if response['code'] == 0:
-            return response['data']['play'], response['data']['title']
-        return None, None
-    except:
+        response = requests.get(api_url, timeout=15)
+        data = response.json()
+        print(f"Tikwm response: {data}")
+        
+        if data.get('code') == 0 and data.get('data'):
+            url_limpia = data['data'].get('play') or data['data'].get('wmplay')
+            titulo = data['data'].get('title', 'Video TikTok')
+            return url_limpia, titulo
+        else:
+            print(f"Tikwm error: {data.get('msg')}")
+            return None, None
+    except Exception as e:
+        print(f"Error conectando tikwm: {e}")
         return None, None
 
 @app.route("/proponer_video", methods=["GET", "POST"])
@@ -857,13 +866,19 @@ def proponer_video():
     if "usuario" not in session:
         return redirect(url_for('index', next='proponer_video'))
     
-    # GET = mostrar formulario
     if request.method == "GET":
         return render_template("proponer_video.html")
     
-    # POST = procesar el video
-    url_tiktok = request.form['url_tiktok']
+    url_tiktok = request.form.get('url_tiktok')
     telefono = session["usuario"]["telefono"]
+    
+    if not url_tiktok:
+        flash("Pega un link válido")
+        return redirect(url_for('proponer_video'))
+    
+    if 'tiktok.com' not in url_tiktok.lower():
+        flash("Solo aceptamos links de TikTok")
+        return redirect(url_for('proponer_video'))
     
     url_limpia, titulo = obtener_video_limpio(url_tiktok)
     
@@ -873,16 +888,22 @@ def proponer_video():
     
     conexion = conectar_db()
     cursor = conexion.cursor()
-    cursor.execute("""
-        INSERT INTO videos (telefono_creador, url_video, titulo, estado) 
-        VALUES (%s, %s, %s, %s)
-    """, (telefono, url_limpia, titulo, 'aprobado'))
-    conexion.commit()
-    cursor.close()
-    conexion.close()
-    
-    flash("Video propuesto con éxito")
-    return redirect(url_for('videos'))
+    try:
+        cursor.execute("""
+            INSERT INTO videos (telefono_creador, url_video, titulo, categoria, estado) 
+            VALUES (%s, %s, %s, %s, %s)
+        """, (telefono, url_limpia, titulo or 'Video TikTok', 'general', 'aprobado'))
+        conexion.commit()
+        flash("Video propuesto con éxito")
+        return redirect(url_for('videos'))
+    except Exception as e:
+        conexion.rollback()
+        print(f"Error DB: {e}")
+        flash("Error guardando el video")
+        return redirect(url_for('proponer_video'))
+    finally:
+        cursor.close()
+        conexion.close()
 @app.route("/perfil")
 def mi_perfil():
     if "usuario" not in session:
