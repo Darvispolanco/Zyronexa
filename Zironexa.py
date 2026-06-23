@@ -860,7 +860,40 @@ def proponer_video():
         return "Video enviado a revisión. Aparecerá en 24h si es aprobado."
 
     return render_template("proponer_video.html")
-
+@app.route("/perfil")
+def mi_perfil():
+    if "usuario" not in session:
+        return redirect(url_for('index', next='perfil'))
+    
+    user_id = session.get("usuario_id") or session.get("usuario", {}).get("id")
+    telefono = session["usuario"]["telefono"]
+    
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    
+    # Datos del usuario
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
+    usuario = cursor.fetchone()
+    
+    # Stats de videos
+    cursor.execute("""
+        SELECT 
+            COUNT(*) FILTER (WHERE estado = 'aprobado') as videos_aprobados,
+            COUNT(*) FILTER (WHERE estado = 'pendiente') as videos_pendientes,
+            COUNT(*) FILTER (WHERE estado = 'rechazado') as videos_rechazados,
+            COUNT(*) as total_videos
+        FROM videos 
+        WHERE telefono_creador = %s
+    """, (telefono,))
+    stats_videos = cursor.fetchone()
+    
+    cursor.close()
+    conexion.close()
+    
+    return render_template("perfil.html", 
+        usuario=usuario,
+        stats_videos=stats_videos
+    )
 @app.route("/perfil/<telefono>")
 def perfil(telefono):
     if "usuario" not in session:
