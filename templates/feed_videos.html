@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Zyronexa Reels</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial; overflow: hidden; }
+       .categorias {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            display: flex; gap: 12px; padding: 15px; overflow-x: auto;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+        }
+       .categorias::-webkit-scrollbar { display: none; }
+       .categorias a {
+            color: #aaa; text-decoration: none; white-space: nowrap;
+            padding: 8px 16px; border-radius: 20px; border: 1px solid #333; font-size: 14px;
+        }
+       .categorias a.activo { background: #f5c542; color: #000; border-color: #f5c542; }
+       .feed-container {
+            height: 100vh; width: 100vw; overflow-y: scroll;
+            scroll-snap-type: y mandatory; scroll-behavior: smooth;
+        }
+       .feed-container::-webkit-scrollbar { display: none; }
+       .video-card {
+            height: 100vh; width: 100%; position: relative;
+            scroll-snap-align: start; display: flex;
+            justify-content: center; align-items: center; background: #000;
+        }
+       .video-wrapper {
+            width: 100%; height: 100%; max-width: 500px;
+            position: relative; display: flex; align-items: center;
+        }
+       .video-wrapper iframe,.video-wrapper blockquote,.video-wrapper .fb-video {
+            width: 100%!important; height: 100%!important; border: none;
+        }
+       .video-info {
+            position: absolute; bottom: 90px; left: 15px; right: 80px; z-index: 10;
+        }
+       .perfil-link {
+            color: #fff; text-decoration: none; font-weight: 700;
+            font-size: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+       .video-titulo {
+            margin-top: 8px; font-size: 15px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+       .plataforma-tag {
+            display: inline-block; background: rgba(245,197,66,0.2); color: #f5c542;
+            padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-top: 5px;
+        }
+       .acciones-lateral {
+            position: absolute; bottom: 90px; right: 10px; z-index: 10;
+            display: flex; flex-direction: column; gap: 20px; align-items: center;
+        }
+       .btn-accion {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; cursor: pointer; border: none; color: #fff;
+        }
+       .btn-proponer {
+            position: fixed; bottom: 80px; right: 20px; z-index: 200;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: #f5c542; color: #000; border: none;
+            font-size: 32px; font-weight: 300; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(245,197,66,0.4);
+        }
+       .navbar-inferior {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 65px; z-index: 150;
+            background: #000; display: flex; justify-content: space-around; align-items: center;
+            border-top: 1px solid #222;
+        }
+       .navbar-inferior a {
+            color: #888; text-decoration: none; font-size: 11px;
+            text-align: center; display: flex; flex-direction: column; gap: 3px;
+        }
+       .navbar-inferior a.activo { color: #f5c542; }
+       .nav-icono { font-size: 22px; }
+       .sin-videos {
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center; padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="categorias">
+    <a href="/videos?cat=motivacion" class="{{'activo' if cat_actual == 'motivacion'}}">Motivación</a>
+    <a href="/videos?cat=finanzas" class="{{'activo' if cat_actual == 'finanzas'}}">Finanzas</a>
+    <a href="/videos?cat=comedia" class="{{'activo' if cat_actual == 'comedia'}}">Comedia</a>
+    <a href="/videos?cat=datos" class="{{'activo' if cat_actual == 'datos'}}">Datos</a>
+    <a href="/videos?cat=tech" class="{{'activo' if cat_actual == 'tech'}}">Tech</a>
+</div>
+
+<div class="feed-container">
+{% if videos %}
+    {% for id, video_id, plataforma, titulo, telefono_propone in videos %}
+    <div class="video-card">
+        <div class="video-wrapper">
+            {% if plataforma == 'tiktok' %}
+                <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@x/video/{{video_id}}" data-video-id="{{video_id}}"><section></section></blockquote>
+
+            {% elif plataforma == 'youtube' %}
+                <iframe src="https://www.youtube.com/embed/{{video_id}}?autoplay=0&mute=1&loop=1&playlist={{video_id}}&controls=1&modestbranding=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+            {% elif plataforma == 'instagram' %}
+                <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/{{video_id}}/"></blockquote>
+
+            {% elif plataforma == 'facebook' %}
+                <div class="fb-video" data-href="https://www.facebook.com/watch/?v={{video_id}}" data-width="500" data-show-text="false"></div>
+
+            {% elif plataforma == 'vimeo' %}
+                <iframe src="https://player.vimeo.com/video/{{video_id}}?loop=1&muted=1" allow="autoplay; fullscreen" allowfullscreen></iframe>
+
+            {% elif plataforma == 'twitch' %}
+                <iframe src="https://player.twitch.tv/?video={{video_id}}&parent=localhost&muted=true" allowfullscreen></iframe>
+
+            {% elif plataforma == 'kwai' %}
+                <iframe src="https://www.kwai.com/embed/{{video_id}}" allowfullscreen></iframe>
+            {% endif %}
+        </div>
+
+        <div class="video-info">
+            <a href="/perfil/{{telefono_propone}}" class="perfil-link">@{{telefono_propone[-4:]}}</a>
+            <p class="video-titulo">{{titulo}}</p>
+            <span class="plataforma-tag">{{plataforma|upper}}</span>
+        </div>
+
+        <div class="acciones-lateral">
+            <button class="btn-accion" onclick="reportarVideo({{id}})">🚩</button>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="sin-videos">
+        <div style="font-size: 60px;">📹</div>
+        <h3>No hay videos en {{cat_actual}}</h3>
+        <p style="color: #888; margin-top: 10px;">Toca + para proponer el primero</p>
+    </div>
+{% endif %}
+</div>
+
+<button class="btn-proponer" onclick="window.location.href='/proponer_video'">+</button>
+
+<div class="navbar-inferior">
+    <a href="/videos" class="activo"><span class="nav-icono">🏠</span><span>Inicio</span></a>
+    <a href="/home"><span class="nav-icono">💰</span><span>Invertir</span></a>
+    <a href="/perfil"><span class="nav-icono">👤</span><span>Perfil</span></a>
+</div>
+
+<div id="fb-root"></div>
+<script async src="https://www.tiktok.com/embed.js"></script>
+<script async src="//www.instagram.com/embed.js"></script>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v18.0"></script>
+<script>
+function reportarVideo(video_id) {
+    if(confirm('¿Reportar este video por contenido inapropiado?')) {
+        fetch('/reportar_video/' + video_id, {method: 'POST'})
+       .then(() => alert('Video reportado. Lo revisaremos en 24h.'));
+    }
+}
+</script>
+</body>
+</html>

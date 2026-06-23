@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Proponer Video - Zyronexa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000; color: #fff; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial;
+            padding: 20px; min-height: 100vh;
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
+        .btn-back { 
+            background: #222; border: none; color: #fff; 
+            width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer;
+        }
+        h1 { font-size: 24px; }
+        .info-box {
+            background: #111; border: 1px solid #333; border-radius: 12px;
+            padding: 15px; margin-bottom: 25px; font-size: 14px; color: #aaa;
+        }
+        .info-box strong { color: #f5c542; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+        input, select, textarea {
+            width: 100%; background: #111; border: 1px solid #333; 
+            color: #fff; padding: 14px; border-radius: 10px; font-size: 16px;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #f5c542; outline: none; }
+        textarea { resize: vertical; min-height: 80px; }
+        .plataformas {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px;
+        }
+        .plataforma-tag {
+            background: #111; border: 1px solid #333; padding: 8px; 
+            border-radius: 8px; text-align: center; font-size: 12px;
+        }
+        .btn-enviar {
+            width: 100%; background: #f5c542; color: #000; border: none;
+            padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700;
+            cursor: pointer; margin-top: 10px;
+        }
+        .btn-enviar:disabled { background: #333; color: #666; cursor: not-allowed; }
+        .error { color: #ff4444; font-size: 14px; margin-top: 10px; text-align: center; }
+        .success { color: #44ff44; font-size: 14px; margin-top: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-back" onclick="window.location.href='/videos'">←</button>
+            <h1>Proponer Video</h1>
+        </div>
+
+        <div class="info-box">
+            <strong>Requisito:</strong> Solo miembros con C$100+ invertidos pueden proponer.<br>
+            <strong>Revisión:</strong> Tu video aparecerá en 24h si es aprobado.<br>
+            <strong>Prohibido:</strong> Porno, apuestas, estafas, crypto. Bloqueo permanente.
+        </div>
+
+        <form id="formVideo">
+            <div class="form-group">
+                <label>Link del video</label>
+                <input type="url" id="url" placeholder="Pega link de TikTok, YouTube, Instagram..." required>
+                <div class="plataformas">
+                    <div class="plataforma-tag">TikTok</div>
+                    <div class="plataforma-tag">YouTube</div>
+                    <div class="plataforma-tag">Instagram</div>
+                    <div class="plataforma-tag">Facebook</div>
+                    <div class="plataforma-tag">Vimeo</div>
+                    <div class="plataforma-tag">Twitch</div>
+                    <div class="plataforma-tag">Kwai</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Título del video</label>
+                <textarea id="titulo" placeholder="Ej: Motivación para emprendedores" maxlength="100" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Categoría</label>
+                <select id="categoria" required>
+                    <option value="">Selecciona una categoría</option>
+                    <option value="motivacion">Motivación</option>
+                    <option value="finanzas">Finanzas</option>
+                    <option value="comedia">Comedia</option>
+                    <option value="datos">Datos Curiosos</option>
+                    <option value="tech">Tecnología</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-enviar" id="btnEnviar">Enviar a Revisión</button>
+            <div id="mensaje"></div>
+        </form>
+    </div>
+
+<script>
+document.getElementById('formVideo').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnEnviar');
+    const msg = document.getElementById('mensaje');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    msg.className = '';
+    msg.textContent = '';
+
+    const formData = new FormData();
+    formData.append('url', document.getElementById('url').value);
+    formData.append('titulo', document.getElementById('titulo').value);
+    formData.append('categoria', document.getElementById('categoria').value);
+
+    try {
+        const res = await fetch('/proponer_video', { method: 'POST', body: formData });
+        const text = await res.text();
+        if (res.ok) {
+            msg.className = 'success';
+            msg.textContent = text;
+            setTimeout(() => window.location.href = '/videos', 2000);
+        } else {
+            msg.className = 'error';
+            msg.textContent = text;
+            btn.disabled = false;
+            btn.textContent = 'Enviar a Revisión';
+        }
+    } catch (err) {
+        msg.className = 'error';
+        msg.textContent = 'Error de conexión';
+        btn.disabled = false;
+        btn.textContent = 'Enviar a Revisión';
+    }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Perfil - Zyronexa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000; color: #fff; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial;
+            min-height: 100vh;
+        }
+        .header {
+            padding: 20px; display: flex; align-items: center; gap: 15px;
+            border-bottom: 1px solid #222;
+        }
+        .btn-back { 
+            background: #222; border: none; color: #fff; 
+            width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer;
+        }
+        .perfil-info { padding: 30px 20px; text-align: center; }
+        .avatar {
+            width: 80px; height: 80px; border-radius: 50%; background: #f5c542;
+            color: #000; display: flex; align-items: center; justify-content: center;
+            font-size: 32px; font-weight: 700; margin: 0 auto 15px auto;
+        }
+        .telefono { font-size: 20px; font-weight: 700; margin-bottom: 5px; }
+        .fecha { color: #888; font-size: 14px; }
+        .stats {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            padding: 0 20px; margin: 30px 0;
+        }
+        .stat-box {
+            background: #111; border: 1px solid #333; border-radius: 12px;
+            padding: 20px; text-align: center;
+        }
+        .stat-numero { font-size: 24px; font-weight: 700; color: #f5c542; }
+        .stat-label { font-size: 12px; color: #888; margin-top: 5px; }
+        .seccion-titulo {
+            padding: 0 20px; font-size: 16px; font-weight: 600; margin-bottom: 15px;
+        }
+        .videos-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+            padding: 0 20px 80px 20px;
+        }
+        .video-thumb {
+            aspect-ratio: 9/16; background: #111; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; color: #666; position: relative; overflow: hidden;
+        }
+        .video-thumb iframe {
+            width: 100%; height: 100%; border: none; pointer-events: none;
+        }
+        .sin-videos {
+            text-align: center; padding: 40px 20px; color: #666;
+        }
+        .navbar-inferior {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+            background: #000; display: flex; justify-content: space-around; align-items: center;
+            border-top: 1px solid #222;
+        }
+        .navbar-inferior a {
+            color: #888; text-decoration: none; font-size: 11px;
+            text-align: center; display: flex; flex-direction: column; gap: 3px;
+        }
+        .navbar-inferior a.activo { color: #f5c542; }
+        .nav-icono { font-size: 22px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="btn-back" onclick="window.history.back()">←</button>
+        <h1>Perfil</h1>
+    </div>
+
+    <div class="perfil-info">
+        <div class="avatar">{{usuario.telefono[-2:]}}</div>
+        <div class="telefono">@{{usuario.telefono[-4:]}}</div>
+        <div class="fecha">Miembro desde {{usuario.fecha_creado.strftime('%b %Y') if usuario.fecha_creado else 'N/A'}}</div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <div class="stat-numero">{{videos_propuestos}}</div>
+            <div class="stat-label">Videos Propuestos</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-numero">C${{usuario.total_depositado or 0}}</div>
+            <div class="stat-label">Total Invertido</div>
+        </div>
+    </div>
+
+    <div class="seccion-titulo">Videos Aprobados</div>
+    
+    {% if urls_videos %}
+    <div class="videos-grid">
+        {% for video_id, plataforma in urls_videos %}
+        <div class="video-thumb">
+            {% if plataforma == 'youtube' %}
+                <iframe src="https://www.youtube.com/embed/{{video_id}}?mute=1&controls=0"></iframe>
+            {% elif plataforma == 'tiktok' %}
+                <iframe src="https://www.tiktok.com/embed/v2/{{video_id}}"></iframe>
+            {% else %}
+                {{plataforma|upper}}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="sin-videos">
+        Este usuario aún no tiene videos aprobados
+    </div>
+    {% endif %}
+
+    <div class="navbar-inferior">
+        <a href="/videos"><span class="nav-icono">🏠</span><span>Inicio</span></a>
+        <a href="/home"><span class="nav-icono">💰</span><span>Invertir</span></a>
+        <a href="/perfil" class="activo"><span class="nav-icono">👤</span><span>Perfil</span></a>
+    </div>
+</body>
+</html>
