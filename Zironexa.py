@@ -14,6 +14,7 @@ import json
 import pandas as pd
 from io import BytesIO
 load_dotenv()
+import requests
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "clave_secreta_123")
@@ -814,52 +815,70 @@ def logout():
     
 @app.route("/videos")
 def videos():
-    categoria = request.args.get("cat", "motivacion")
+    if "usuario" not in session:
+        return redirect(url_for('index', next='videos'))
+    
+    conexion = conectar_db()
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    
+    # Trae videos + nombre del usuario que lo subió
+    cursor.execute("""
+        SELECT 
+            v.id,
+            v.url_video,
+            v.titulo,
+            v.telefono_creador,
+            u.nombre as nombre_usuario
+        FROM videos v
+        INNER JOIN usuarios u ON v.telefono_creador = u.telefono
+        WHERE v.estado = 'aprobado'
+        ORDER BY v.fecha_creacion DESC
+    """)
+    videos = cursor.fetchall()
+    
+    cursor.close()
+    conexion.close()
+    
+    return render_template("feed_videos.html", videos=videos)
+
+
+def obtener_video_limpio(url_tiktok):
+    api_url = f"https://www.tikwm.com/api/?url={url_tiktok}"
+    try:
+        response = requests.get(api_url, timeout=10).json()
+        if response['code'] == 0:
+            return response['data']['play'], response['data']['title']
+        return None, None
+    except:
+        return None, None
+
+@app.route("/proponer_video", methods=["POST"])
+def proponer_video():
+    if "usuario" not in session:
+        return redirect(url_for('index'))
+    
+    url_tiktok = request.form['url_tiktok']
+    telefono = session["usuario"]["telefono"]
+    
+    url_limpia, titulo = obtener_video_limpio(url_tiktok)
+    
+    if not url_limpia:
+        flash("Error al procesar el video de TikTok")
+        return redirect(url_for('home'))
+    
     conexion = conectar_db()
     cursor = conexion.cursor()
     cursor.execute("""
-        SELECT id, video_id, plataforma, titulo, telefono_creador
-        FROM videos_feed
-        WHERE estado = 'aprobado' AND categoria = %s
-        ORDER BY fecha_creado DESC LIMIT 20
-    """, (categoria,))
-    videos_db = cursor.fetchall()
+        INSERT INTO videos (telefono_creador, url_video, titulo, estado) 
+        VALUES (%s, %s, %s, %s)
+    """, (telefono, url_limpia, titulo, 'propuesto'))
+    conexion.commit()
     cursor.close()
     conexion.close()
-    return render_template("feed_videos.html", videos=videos_db, cat_actual=categoria)
+    
+    flash("Video propuesto. Esperando aprobación")
+    return redirect(url_for('videos'))
 
-@app.route("/proponer_video", methods=["GET", "POST"])
-def proponer_video():
-    if "usuario" not in session:
-        return redirect("/login")
-
-    if obtener_saldo(session["usuario"]["telefono"]) < 100:
-        return "Solo miembros con C$100+ invertidos pueden promocionar videos", 403
-
-    if request.method == "POST":
-        url = request.form.get("url", "").strip()
-        titulo = request.form.get("titulo", "").strip()[:100]
-        categoria = request.form.get("categoria")
-
-        if any(p in titulo.lower() for p in PALABRAS_BLOQUEADAS):
-            return "Título contiene palabras prohibidas", 400
-
-        video_id, plataforma, error = extraer_id_video(url)
-        if error:
-            return error, 400
-
-        conexion = conectar_db()
-        cursor = conexion.cursor()
-        cursor.execute("""
-            INSERT INTO videos_feed (telefono_creador, video_id, plataforma, categoria, titulo, estado)
-            VALUES (%s, %s, %s, %s, %s, 'pendiente')
-        """, (session["usuario"]["telefono"], video_id, plataforma, categoria, titulo))
-        conexion.commit()
-        cursor.close()
-        conexion.close()
-        return "Video enviado a revisión. Aparecerá en 24h si es aprobado."
-
-    return render_template("proponer_video.html")
 @app.route("/perfil")
 def mi_perfil():
     if "usuario" not in session:
