@@ -350,6 +350,75 @@
             flex: 1;
             min-width: 200px;
         }
+                .video-card {
+            background: #f5f5f5;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .video-preview {
+            width: 120px;
+            height: 68px;
+            background: #000;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .video-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            pointer-events: none;
+        }
+        .video-info {
+            flex: 1;
+        }
+        .video-info h4 {
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .video-info p {
+            font-size: 13px;
+            color: #666;
+            margin: 3px 0;
+        }
+        .video-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-aprobar {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-rechazar {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .badge-reportado {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -435,6 +504,15 @@
                 Disponible de C${{ "{:,}".format(stats.limite_bampro) }}
             </div>
         </div>
+                <div class="stat-card">
+            <h3>VIDEOS PENDIENTES</h3>
+            <div class="value">
+                {{ videos_pendientes|length if videos_pendientes else 0 }}
+            </div>
+            <div class="subvalue">
+                Por aprobar
+            </div>
+        </div>
         <div class="tab active" onclick="mostrarTab('retiros')">
             Retiros BAMPRO <span class="badge-pendiente">{{ retiros_pendientes|length }}</span>
         </div>
@@ -448,7 +526,9 @@
             Historial
         </div>
     </div>
-
+    <div class="tab" onclick="mostrarTab('videos')">
+        Videos <span class="badge-pendiente">{{ videos_pendientes|length if videos_pendientes else 0 }}</span>
+    </div>
     <div id="retiros" class="tab-content active retiros-section">
         <h2 class="section-title">Gestión de Retiros BAMPRO</h2>
 
@@ -557,7 +637,80 @@
             {% endif %}
         </div>
     </div>
+        <div id="videos" class="tab-content videos-section">
+        <h2 class="section-title">Gestión de Videos</h2>
+        
+        <div class="filtros-bar">
+            <button class="tab active" onclick="filtrarVideos('pendiente')">Pendientes <span class="badge-pendiente">{{ videos_pendientes|length if videos_pendientes else 0 }}</span></button>
+            <button class="tab" onclick="filtrarVideos('reportado')">Reportados <span class="badge-reportado">{{ videos_reportados|length if videos_reportados else 0 }}</span></button>
+        </div>
 
+        <div id="listaVideos">
+            <h3 style="margin: 20px 0 10px 0;">Videos Pendientes de Aprobación</h3>
+            {% if videos_pendientes %}
+            {% for v in videos_pendientes %}
+            <div class="video-card" data-estado="pendiente">
+                <div class="video-preview">
+                    {% if v.plataforma == 'youtube' %}
+                        <iframe src="https://www.youtube.com/embed/{{v.video_id}}?mute=1&controls=0"></iframe>
+                    {% elif v.plataforma == 'tiktok' %}
+                        <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}"></iframe>
+                    {% else %}
+                        <div style="color:#fff;font-size:10px;padding:20px 5px;text-align:center;">{{v.plataforma|upper}}</div>
+                    {% endif %}
+                </div>
+                <div class="video-info">
+                    <h4>{{v.titulo}}</h4>
+                    <p><strong>Usuario:</strong> <a href="/perfil/{{v.telefono_creador}}" style="color: #3498db;">@{{v.telefono_creador[-4:]}}</a> ({{v.nombre}})</p>
+                    <p><strong>Categoría:</strong> <span class="badge-pendiente">{{v.categoria}}</span></p>
+                    <p><strong>Plataforma:</strong> {{v.plataforma|upper}}</p>
+                    <p><strong>Fecha:</strong> {{v.fecha_creado.strftime('%d/%m/%Y %H:%M')}}</p>
+                </div>
+                <div class="video-actions">
+                    <button class="btn-aprobar" onclick="aprobarVideo({{v.id}})">✓ Aprobar</button>
+                    <button class="btn-rechazar" onclick="rechazarVideo({{v.id}})">✗ Rechazar</button>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="vacio">
+                No hay videos pendientes 🎉
+            </div>
+            {% endif %}
+
+            <h3 style="margin: 40px 0 10px 0;">Videos Reportados</h3>
+            {% if videos_reportados %}
+            {% for v in videos_reportados %}
+            <div class="video-card" data-estado="reportado" style="border-left-color: #e74c3c;">
+                <div class="video-preview">
+                    {% if v.plataforma == 'youtube' %}
+                        <iframe src="https://www.youtube.com/embed/{{v.video_id}}?mute=1&controls=0"></iframe>
+                    {% elif v.plataforma == 'tiktok' %}
+                        <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}"></iframe>
+                    {% else %}
+                        <div style="color:#fff;font-size:10px;padding:20px 5px;text-align:center;">{{v.plataforma|upper}}</div>
+                    {% endif %}
+                </div>
+                <div class="video-info">
+                    <h4>{{v.titulo}}</h4>
+                    <p><strong>Usuario:</strong> <a href="/perfil/{{v.telefono_creador}}" style="color: #3498db;">@{{v.telefono_creador[-4:]}}</a> ({{v.nombre}})</p>
+                    <p><strong>Categoría:</strong> <span class="badge-reportado">{{v.categoria}}</span></p>
+                    <p><strong>Plataforma:</strong> {{v.plataforma|upper}}</p>
+                    <p style="color: #e74c3c; font-weight: bold;">⚠️ REPORTADO POR USUARIOS</p>
+                </div>
+                <div class="video-actions">
+                    <button class="btn-aprobar" onclick="aprobarVideo({{v.id}})">Restaurar</button>
+                    <button class="btn-rechazar" onclick="banearUsuario('{{v.telefono_creador}}')">Banear User</button>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="vacio">
+                No hay videos reportados
+            </div>
+            {% endif %}
+        </div>
+    </div>
     <div id="acciones" class="tab-content acciones-section">
         <h2 class="section-title">Acciones de Propietario</h2>
         <div class="info-box">
@@ -914,6 +1067,42 @@
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = 'none';
             }
+        }
+                function filtrarVideos(estado) {
+            document.querySelectorAll('#videos .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.video-card').forEach(card => {
+                card.style.display = card.dataset.estado === estado ? 'flex' : 'none';
+            });
+        }
+
+        async function aprobarVideo(id) {
+            if (!confirm('¿Aprobar este video? Aparecerá en el feed público.')) return;
+            const res = await fetch(`/aprobar_video/${id}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                mostrarAlerta('Video aprobado', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                mostrarAlerta(data.error || 'Error', 'error');
+            }
+        }
+
+        async function rechazarVideo(id) {
+            if (!confirm('¿Rechazar y eliminar este video?')) return;
+            const res = await fetch(`/rechazar_video/${id}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                mostrarAlerta('Video rechazado', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                mostrarAlerta(data.error || 'Error', 'error');
+            }
+        }
+
+        async function banearUsuario(telefono) {
+            if (!confirm(`¿Banear a ${telefono}? No podrá proponer más videos.`)) return;
+            mostrarAlerta('Función de banear pendiente de implementar en backend', 'error');
         }
     </script>
 </body>
