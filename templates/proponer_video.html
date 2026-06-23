@@ -6,39 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            background: #000; color: #fff; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial;
-            padding: 20px; min-height: 100vh;
-        }
+        body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial; padding: 20px; min-height: 100vh; }
         .container { max-width: 500px; margin: 0 auto; }
         .header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
-        .btn-back { 
-            background: #222; border: none; color: #fff; 
-            width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer;
-        }
+        .btn-back { background: #222; border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; }
         h1 { font-size: 24px; }
-        .info-box {
-            background: #111; border: 1px solid #333; border-radius: 12px;
-            padding: 15px; margin-bottom: 25px; font-size: 14px; color: #aaa;
-        }
+        .info-box { background: #111; border: 1px solid #333; border-radius: 12px; padding: 15px; margin-bottom: 25px; font-size: 14px; color: #aaa; }
         .info-box strong { color: #f5c542; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
-        input {
-            width: 100%; background: #111; border: 1px solid #333; 
-            color: #fff; padding: 14px; border-radius: 10px; font-size: 16px;
-        }
+        input { width: 100%; background: #111; border: 1px solid #333; color: #fff; padding: 14px; border-radius: 10px; font-size: 16px; }
         input:focus { border-color: #f5c542; outline: none; }
-        .btn-enviar {
-            width: 100%; background: #f5c542; color: #000; border: none;
-            padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700;
-            cursor: pointer; margin-top: 10px;
-        }
-        .flash { 
-            padding: 12px; border-radius: 8px; margin-bottom: 20px; 
-            background: #ff4444; color: #fff; text-align: center;
-        }
+        .btn-enviar { width: 100%; background: #f5c542; color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .flash { padding: 12px; border-radius: 8px; margin-bottom: 20px; background: #ff4444; color: #fff; text-align: center; }
     </style>
 </head>
 <body>
@@ -66,7 +46,6 @@
                 <label>Link de TikTok</label>
                 <input type="url" name="url_tiktok" placeholder="https://www.tiktok.com/@user/video/..." required>
             </div>
-
             <button type="submit" class="btn-enviar">Enviar a Revisión</button>
         </form>
     </div>
