@@ -281,13 +281,18 @@ def home():
 def create_deposit_session():
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
+    
     data = request.json
     monto_cordobas = int(data.get("monto") or 0)
+    
     if monto_cordobas <= 0:
-    return jsonify({"error": "Monto inválido"}), 400
+        return jsonify({"error": "Monto inválido"}), 400  # <-- esta línea estaba mal indentada
+    
     monto_usd_centavos = int((monto_cordobas / TIPO_CAMBIO) * 100)
-if monto_usd_centavos < 50:
-    return jsonify({"error": "Monto mínimo no alcanzado"}), 400
+    
+    if monto_usd_centavos < 50:
+        return jsonify({"error": "Monto mínimo no alcanzado"}), 400
+    
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -311,7 +316,6 @@ if monto_usd_centavos < 50:
         return jsonify({"url": checkout_session.url})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route("/deposito_exitoso")
 def deposito_exitoso():
     return render_template("deposito_exitoso.html")
