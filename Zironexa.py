@@ -13,8 +13,8 @@ import re
 import json
 import pandas as pd
 from io import BytesIO
+import requests  # <- AGREGA ESTA LÍNEA
 from dotenv import load_dotenv
-load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "clave_secreta_123")
@@ -808,8 +808,41 @@ def videos():
     
     return render_template("feed_videos.html", videos=videos, cat_actual=categoria)
 
+def resolver_tiktok_url(url_corto):
+    """Convierte vt.tiktok.com o vm.tiktok.com en el video ID"""
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)'}
+        r = requests.head(url_corto, allow_redirects=True, timeout=5, headers=headers)
+        url_largo = r.url
+        match = re.search(r'/video/(\d+)', url_largo)
+        if match:
+            return match.group(1)
+    except Exception as e:
+        print(f"Error resolviendo TikTok: {e}")
+    return None
+
+def extraer_id_video(url):
+    url = url.lower().strip()
+    if any(p in url for p in PALABRAS_BLOQUEADAS):
+        return None, None, "Link contiene contenido prohibido"
+    
+    # Bloquear links CDN directos
+    if 'tiktokcdn' in url or 'alisg' in url or 'mime_type=video_mp4' in url:
+        return None, None, "Usa el link de compartir de TikTok, no el link directo del video"
+    
+    for plataforma, data in PLATAFORMAS.items():
+        if any(d in url for d in data['dominios']):
+            regex_list = data['regex'] if isinstance(data['regex'], list) else [data['regex']]
+            for regex in regex_list:
+                match = re.search(regex, url)
+                if match:
+                    return match.group(1), plataforma, None
+            return None, None, f"Link de {plataforma} inválido"
+    return None, None, "Plataforma no soportada. Usa: TikTok, YouTube, Instagram, Facebook, Vimeo, Twitch o Kwai"
+
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
+    # ... tu código actual
     if "usuario" not in session:
         if request.method == "GET":
             return redirect("/login")
