@@ -106,17 +106,7 @@ def crear_base_datos():
             stripe_payout_id TEXT
         );
     """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS videos (
-            id SERIAL PRIMARY KEY,
-            telefono_creador VARCHAR(20) NOT NULL,
-            url_video TEXT NOT NULL,
-            titulo VARCHAR(255) DEFAULT 'Video',
-            categoria VARCHAR(50) DEFAULT 'general',
-            estado VARCHAR(20) DEFAULT 'pendiente',
-            fecha_creacion TIMESTAMP DEFAULT NOW()
-        );
-    """)
+    
     cursor.execute("""
         DO $$
         BEGIN
@@ -810,38 +800,6 @@ def videos():
     
     return render_template("feed_videos.html", videos=videos, cat_actual=categoria)
 
-def resolver_tiktok_url(url_corto):
-    """Convierte vt.tiktok.com o vm.tiktok.com en el video ID"""
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)'}
-        r = requests.head(url_corto, allow_redirects=True, timeout=5, headers=headers)
-        url_largo = r.url
-        match = re.search(r'/video/(\d+)', url_largo)
-        if match:
-            return match.group(1)
-    except Exception as e:
-        print(f"Error resolviendo TikTok: {e}")
-    return None
-
-def extraer_id_video(url):
-    url = url.lower().strip()
-    if any(p in url for p in PALABRAS_BLOQUEADAS):
-        return None, None, "Link contiene contenido prohibido"
-    
-    # Bloquear links CDN directos
-    if 'tiktokcdn' in url or 'alisg' in url or 'mime_type=video_mp4' in url:
-        return None, None, "Usa el link de compartir de TikTok, no el link directo del video"
-    
-    for plataforma, data in PLATAFORMAS.items():
-        if any(d in url for d in data['dominios']):
-            regex_list = data['regex'] if isinstance(data['regex'], list) else [data['regex']]
-            for regex in regex_list:
-                match = re.search(regex, url)
-                if match:
-                    return match.group(1), plataforma, None
-            return None, None, f"Link de {plataforma} inválido"
-    return None, None, "Plataforma no soportada. Usa: TikTok, YouTube, Instagram, Facebook, Vimeo, Twitch o Kwai"
-
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
     if "usuario" not in session:
@@ -906,12 +864,14 @@ def reportar_video(video_id):
         return jsonify({"error": "Login"}), 401
     conexion = conectar_db()
     cursor = conexion.cursor()
-    cursor.execute("UPDATE videos SET estado = 'reportado' WHERE id = %s AND estado = 'aprobado'", (video_id,))
+    cursor.execute("""
+        UPDATE videos SET estado = 'reportado' 
+        WHERE "identificación" = %s AND estado = 'aprobado'
+    """, (video_id,))
     conexion.commit()
     cursor.close()
     conexion.close()
     return jsonify({"ok": True})
-
 @app.route("/perfil")
 def mi_perfil():
     if "usuario" not in session:
@@ -950,20 +910,27 @@ def perfil(telefono):
         return redirect(url_for('index', next=f'perfil/{telefono}'))
     
     conexion = conectar_db()
-    # ... resto igual
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
 
     cursor.execute("SELECT telefono, fecha_registro, total_depositado FROM usuarios WHERE telefono = %s", (telefono,))
     datos_user = cursor.fetchone()
     if not datos_user:
+        cursor.close()
+        conexion.close()
         return "Usuario no encontrado", 404
 
-    usuario = {"telefono": datos_user["telefono"], "fecha_creado": datos_user["fecha_registro"], "total_depositado": datos_user["total_depositado"]}
+    usuario = {
+        "telefono": datos_user["telefono"], 
+        "fecha_creado": datos_user["fecha_registro"], 
+        "total_depositado": datos_user["total_depositado"]
+    }
 
+    # QUERY CORREGIDO ↓
     cursor.execute("""
-        SELECT video_id, plataforma FROM videos_feed
+        SELECT "ID de vídeo" as video_id, plataforma 
+        FROM videos
         WHERE telefono_creador = %s AND estado = 'aprobado'
-        ORDER BY fecha_creado DESC LIMIT 30
+        ORDER BY "identificación" DESC LIMIT 30
     """, (telefono,))
     urls_videos = cursor.fetchall()
 
@@ -973,7 +940,6 @@ def perfil(telefono):
                           usuario=usuario,
                           videos_propuestos=len(urls_videos),
                           urls_videos=urls_videos)
-
 @app.route("/aprobar_video/<int:id>", methods=["POST"])
 def aprobar_video(id):
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
