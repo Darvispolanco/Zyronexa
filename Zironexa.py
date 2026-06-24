@@ -753,21 +753,31 @@ def logout():
 def videos():
     if "usuario" not in session:
         return redirect(url_for('index', next='videos'))
+    
     categoria = request.args.get("cat", "general")
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("""
-        SELECT v.*, u.nombre as nombre_usuario
+        SELECT v.id, v.url_video, v.titulo, v.telefono_creador, v.categoria, u.nombre
         FROM videos v
         JOIN usuarios u ON v.telefono_creador = u.telefono
         WHERE v.estado = 'aprobado' AND v.categoria = %s
         ORDER BY v.fecha_creacion DESC LIMIT 20
     """, (categoria,))
-    videos_db = cursor.fetchall()
+    videos_raw = cursor.fetchall()
     cursor.close()
     conexion.close()
-    return render_template("feed_videos.html", videos=videos_db, cat_actual=categoria)
 
+    # Extraer video_id y plataforma de cada url_video
+    videos = []
+    for v in videos_raw:
+        video_id, plataforma, error = extraer_id_video(v['url_video'])
+        if not error and video_id:
+            v['video_id'] = video_id
+            v['plataforma'] = plataforma
+            videos.append(v)
+    
+    return render_template("feed_videos.html", videos=videos, cat_actual=categoria)
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
     if "usuario" not in session:
