@@ -798,39 +798,48 @@ def videos():
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
     if "usuario" not in session:
-        return redirect(url_for('index', next='proponer_video'))
-
-    if obtener_saldo(session["usuario"]["telefono"]) < 100:
-        flash("Solo miembros con C$100+ invertidos pueden promocionar videos")
-        return redirect(url_for('videos'))
-
+        if request.method == "GET":
+            return redirect("/login")
+        return jsonify({"error": "No autorizado"}), 401
+    
+    # Si es GET: mostrar formulario
     if request.method == "GET":
         return render_template("proponer_video.html")
-
-    url = request.form.get("url", "").strip()
-    titulo = request.form.get("titulo", "").strip()[:100]
-    categoria = request.form.get("categoria", "general")
-
-    if any(p in titulo.lower() for p in PALABRAS_BLOQUEADAS):
-        flash("Título contiene palabras prohibidas")
-        return redirect(url_for('proponer_video'))
-
-    video_id, plataforma, error = extraer_id_video(url)
-    if error:
-        flash(error)
-        return redirect(url_for('proponer_video'))
-
-    conexion = conectar_db()
-    cursor = conexion.cursor()
-    cursor.execute("""
-        INSERT INTO videos (telefono_creador, url_video, titulo, categoria, estado)
-        VALUES (%s, %s, %s, %s, 'pendiente')
-    """, (session["usuario"]["telefono"], url, titulo or f'Video de {plataforma}', categoria))
-    conexion.commit()
-    cursor.close()
-    conexion.close()
-    flash("Video enviado a revisión. Aparecerá en 24h si es aprobado.")
-    return redirect(url_for('videos'))
+    
+    # Si es POST: guardar video
+    if request.method == "POST":
+        data = request.get_json()
+        titulo = data.get("titulo")
+        categoria = data.get("categoria")
+        plataforma = data.get("plataforma")
+        video_id = data.get("video_id")
+        
+        if not all([titulo, categoria, plataforma, video_id]):
+            return jsonify({"error": "Faltan datos"}), 400
+        
+        conexion = conectar_db()
+        cursor = conexion.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO videos_propuestos 
+                (telefono_creador, nombre, titulo, categoria, plataforma, video_id, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, 'pendiente')
+            """, (
+                session["usuario"]["telefono"], 
+                session["usuario"]["nombre"], 
+                titulo, 
+                categoria, 
+                plataforma, 
+                video_id
+            ))
+            conexion.commit()
+            return jsonify({"success": True, "message": "Video enviado para revisión"})
+        except Exception as e:
+            conexion.rollback()
+            return jsonify({"error": str(e)}), 500
+        finally:
+            cursor.close()
+            conexion.close()
 
 @app.route("/reportar_video/<int:video_id>", methods=["POST"])
 def reportar_video(video_id):
