@@ -843,53 +843,63 @@ def extraer_id_video(url):
     return None, None, "Plataforma no soportada. Usa: TikTok, YouTube, Instagram, Facebook, Vimeo, Twitch o Kwai"
 
 @app.route("/proponer_video", methods=["GET", "POST"])
-@app.route("/aprobar_video/<int:id>", methods=["POST"])
-def aprobar_video(id):
-    if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
+def proponer_video():
+    if "usuario" not in session:
+        if request.method == "GET":
+            return redirect("/login")
         return jsonify({"error": "No autorizado"}), 401
     
-    conexion = conectar_db()
-    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    if request.method == "GET":
+        return render_template("proponer_video.html")
     
-    try:
-        cursor.execute("SELECT * FROM videos_propuestos WHERE id = %s", (id,))
-        video = cursor.fetchone()
+    if request.method == "POST":
+        data = request.get_json()
+        titulo = data.get("titulo", "").strip()
+        categoria = data.get("categoria", "general").lower()
+        url_original = data.get("url_video", "").strip()
         
-        if not video:
-            return jsonify({"error": "Video no encontrado"}), 404
+        if not all([titulo, categoria, url_original]):
+            return jsonify({"error": "Faltan datos"}), 400
         
-        print(f"[APROBAR] Video: {video['video_id']} plataforma: {video['plataforma']}")
+        video_id, plataforma, error = extraer_id_video(url_original)
         
-        # Usa los nombres exactos de tu tabla con comillas dobles
-        cursor.execute("""
-            INSERT INTO videos (telefono_creador, "ID de video", plataforma, "título", "categorías", estado)
-            VALUES (%s, %s, %s, %s, %s, 'aprobado')
-            ON CONFLICT ("ID de video", plataforma) DO NOTHING
-        """, (
-            video['telefono_creador'], 
-            video['video_id'],
-            video['plataforma'],
-            video['titulo'], 
-            video['categoria'].lower()
-        ))
+        if error:
+            return jsonify({"error": error}), 400
         
-        filas_insertadas = cursor.rowcount
-        print(f"[APROBAR] Filas insertadas: {filas_insertadas}")
+        if plataforma == 'tiktok' and ('vt.tiktok.com' in url_original or 'vm.tiktok.com' in url_original):
+            video_id_resuelto = resolver_tiktok_url(url_original)
+            if not video_id_resuelto:
+                return jsonify({"error": "No se pudo resolver el link de TikTok"}), 400
+            video_id = video_id_resuelto
         
-        cursor.execute("UPDATE videos_propuestos SET estado = 'aprobado' WHERE id = %s", (id,))
-        conexion.commit()
+        if not video_id or not plataforma:
+            return jsonify({"error": "No se pudo extraer el ID del video"}), 400
         
-        return jsonify({"success": True, "insertadas": filas_insertadas})
-    
-    except Exception as e:
-        conexion.rollback()
-        print(f"[APROBAR] ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cursor.close()
-        conexion.close()
+        conexion = conectar_db()
+        cursor = conexion.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO videos_propuestos 
+                (telefono_creador, nombre, titulo, categoria, plataforma, video_id, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, 'pendiente')
+            """, (
+                session["usuario"]["telefono"], 
+                session["usuario"]["nombre"], 
+                titulo, 
+                categoria, 
+                plataforma, 
+                video_id
+            ))
+            conexion.commit()
+            return jsonify({"success": True, "message": "Video enviado para revisión"})
+        except Exception as e:
+            conexion.rollback()
+            return jsonify({"error": str(e)}), 500
+        finally:
+            cursor.close()
+            conexion.close()
+
+
 @app.route("/reportar_video/<int:video_id>", methods=["POST"])
 def reportar_video(video_id):
     if "usuario" not in session:
