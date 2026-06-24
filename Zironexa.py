@@ -185,6 +185,7 @@ def registro():
         return jsonify({"success": False, "error": "El teléfono debe tener 8 dígitos"}), 400
     if len(contrasena) < 6:
         return jsonify({"success": False, "error": "La contraseña debe tener al menos 6 caracteres"}), 400
+    
     contrasena_hash = generate_password_hash(contrasena)
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
@@ -202,9 +203,9 @@ def registro():
         conexion.rollback()
         return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
     except psycopg2.Error as e:
-    conexion.rollback()
-    print("ERROR DB:", str(e))
-    return jsonify({"success": False, "error": "Error interno del servidor"}), 500
+        conexion.rollback()
+        print("ERROR DB:", str(e))
+        return jsonify({"success": False, "error": "Error interno del servidor"}), 500
     finally:
         cursor.close()
         conexion.close()
