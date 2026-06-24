@@ -953,7 +953,7 @@ def aprobar_video(id):
         return jsonify({"error": "No autorizado"}), 401
     conexion = conectar_db()
     cursor = conexion.cursor()
-    cursor.execute("UPDATE videos SET estado = 'aprobado' WHERE id = %s", (id,))
+    cursor.execute("UPDATE videos_propuestos SET estado = 'aprobado' WHERE id = %s", (id,))
     conexion.commit()
     cursor.close()
     conexion.close()
@@ -965,7 +965,7 @@ def rechazar_video(id):
         return jsonify({"error": "No autorizado"}), 401
     conexion = conectar_db()
     cursor = conexion.cursor()
-    cursor.execute("UPDATE videos SET estado = 'rechazado' WHERE id = %s", (id,))
+    cursor.execute("UPDATE videos_propuestos SET estado = 'rechazado' WHERE id = %s", (id,))
     conexion.commit()
     cursor.close()
     conexion.close()
