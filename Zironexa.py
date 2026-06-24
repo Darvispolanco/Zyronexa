@@ -661,6 +661,17 @@ def propietario_dashboard():
     usuarios = cursor.fetchall()
     cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 20", (PROPIETARIO_TELEFONO,))
     historial = cursor.fetchall()
+    
+    # <- AGREGA ESTAS 6 LÍNEAS PARA LOS VIDEOS
+    cursor.execute("SELECT COUNT(*) as total FROM videos_propuestos WHERE estado = 'pendiente'")
+    videos_pendientes = cursor.fetchone()['total']
+    cursor.execute("SELECT COUNT(*) as total FROM videos_propuestos WHERE estado = 'aprobado'")
+    videos_aprobados = cursor.fetchone()['total']
+    cursor.execute("SELECT COUNT(*) as total FROM videos_propuestos WHERE estado = 'rechazado'")
+    videos_rechazados = cursor.fetchone()['total']
+    cursor.execute("SELECT * FROM videos_propuestos WHERE estado = 'pendiente' ORDER BY fecha_propuesta DESC")
+    lista_videos_pendientes = cursor.fetchall()
+    
     cursor.close()
     conexion.close()
     stats = {
@@ -678,7 +689,12 @@ def propietario_dashboard():
         retiros=retiros,
         retiros_pendientes=retiros_pendientes,
         retiros_hoy=retiros_hoy,
-        planes=PLANES
+        planes=PLANES,
+        # <- AGREGA ESTAS 4 VARIABLES AL TEMPLATE
+        videos_pendientes=videos_pendientes,
+        videos_aprobados=videos_aprobados,
+        videos_rechazados=videos_rechazados,
+        lista_videos_pendientes=lista_videos_pendientes
     )
 
 @app.route("/marcar_pagado/<int:id>", methods=["POST"])
