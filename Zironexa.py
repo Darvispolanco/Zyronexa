@@ -905,22 +905,6 @@ def perfil(telefono):
                           videos_propuestos=len(urls_videos),
                           urls_videos=urls_videos)
 
-@app.route("/reportar_video/<int:video_id>", methods=["POST"])
-def reportar_video(video_id):
-    if "usuario" not in session:
-        return jsonify({"error": "Login"}), 401
-
-    conexion = conectar_db()
-    cursor = conexion.cursor()
-    cursor.execute("""
-        UPDATE videos_feed SET estado = 'reportado'
-        WHERE id = %s AND estado = 'aprobado'
-    """, (video_id,))
-    conexion.commit()
-    cursor.close()
-    conexion.close()
-    return jsonify({"ok": True})
-    
 @app.route("/aprobar_video/<int:id>", methods=["POST"])
 def aprobar_video(id):
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
