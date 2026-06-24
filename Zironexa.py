@@ -784,21 +784,20 @@ def videos():
     if "usuario" not in session:
         return redirect(url_for('index', next='videos'))
     
-    categoria = request.args.get("cat", "general")
+    categoria = request.args.get("cat", "general").lower()  # <- forzar minúsculas
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("""
         SELECT v.id, v.url_video, v.titulo, v.telefono_creador, v.categoria, u.nombre
         FROM videos v
         JOIN usuarios u ON v.telefono_creador = u.telefono
-        WHERE v.estado = 'aprobado' AND v.categoria = %s
+        WHERE v.estado = 'aprobado' AND LOWER(v.categoria) = %s
         ORDER BY v.fecha_creacion DESC LIMIT 20
     """, (categoria,))
     videos_raw = cursor.fetchall()
     cursor.close()
     conexion.close()
 
-    # Extraer video_id y plataforma de cada url_video
     videos = []
     for v in videos_raw:
         video_id, plataforma, error = extraer_id_video(v['url_video'])
@@ -808,19 +807,6 @@ def videos():
             videos.append(v)
     
     return render_template("feed_videos.html", videos=videos, cat_actual=categoria)
-import requests
-import re
-
-def resolver_tiktok_url(url_corto):
-    try:
-        r = requests.head(url_corto, allow_redirects=True, timeout=5)
-        url_largo = r.url
-        match = re.search(r'video/(\d+)', url_largo)
-        if match:
-            return match.group(1)
-    except:
-        pass
-    return None
 
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
