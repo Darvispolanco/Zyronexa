@@ -30,9 +30,9 @@
         }
        .video-wrapper {
             width: 100%; height: 100%; max-width: 500px;
-            position: relative; display: flex; align-items: center;
+            position: relative; display: flex; align-items: center; justify-content: center;
         }
-       .video-wrapper iframe,.video-wrapper blockquote,.video-wrapper .fb-video {
+       .video-wrapper iframe, .video-wrapper blockquote, .video-wrapper .fb-video {
             width: 100%!important; height: 100%!important; border: none;
         }
        .video-info {
@@ -87,6 +87,7 @@
 <body>
 
 <div class="categorias">
+    <a href="/videos?cat=general" class="{{'activo' if cat_actual == 'general'}}">General</a>
     <a href="/videos?cat=motivacion" class="{{'activo' if cat_actual == 'motivacion'}}">Motivación</a>
     <a href="/videos?cat=finanzas" class="{{'activo' if cat_actual == 'finanzas'}}">Finanzas</a>
     <a href="/videos?cat=comedia" class="{{'activo' if cat_actual == 'comedia'}}">Comedia</a>
@@ -96,40 +97,40 @@
 
 <div class="feed-container">
 {% if videos %}
-    {% for id, video_id, plataforma, titulo, telefono_propone in videos %}
+    {% for v in videos %}
     <div class="video-card">
         <div class="video-wrapper">
-            {% if plataforma == 'tiktok' %}
-                <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@x/video/{{video_id}}" data-video-id="{{video_id}}"><section></section></blockquote>
+            {% if v.plataforma == 'tiktok' %}
+                <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}" allowfullscreen></iframe>
 
-            {% elif plataforma == 'youtube' %}
-                <iframe src="https://www.youtube.com/embed/{{video_id}}?autoplay=0&mute=1&loop=1&playlist={{video_id}}&controls=1&modestbranding=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            {% elif v.plataforma == 'youtube' %}
+                <iframe src="https://www.youtube.com/embed/{{v.video_id}}?autoplay=0&mute=1&loop=1&playlist={{v.video_id}}&controls=1&modestbranding=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 
-            {% elif plataforma == 'instagram' %}
-                <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/{{video_id}}/"></blockquote>
+            {% elif v.plataforma == 'instagram' %}
+                <iframe src="https://www.instagram.com/reel/{{v.video_id}}/embed" allowfullscreen></iframe>
 
-            {% elif plataforma == 'facebook' %}
-                <div class="fb-video" data-href="https://www.facebook.com/watch/?v={{video_id}}" data-width="500" data-show-text="false"></div>
+            {% elif v.plataforma == 'facebook' %}
+                <div class="fb-video" data-href="https://www.facebook.com/watch/?v={{v.video_id}}" data-width="500" data-show-text="false"></div>
 
-            {% elif plataforma == 'vimeo' %}
-                <iframe src="https://player.vimeo.com/video/{{video_id}}?loop=1&muted=1" allow="autoplay; fullscreen" allowfullscreen></iframe>
+            {% elif v.plataforma == 'vimeo' %}
+                <iframe src="https://player.vimeo.com/video/{{v.video_id}}?loop=1&muted=1" allow="autoplay; fullscreen" allowfullscreen></iframe>
 
-            {% elif plataforma == 'twitch' %}
-                <iframe src="https://player.twitch.tv/?video={{video_id}}&parent=localhost&muted=true" allowfullscreen></iframe>
+            {% elif v.plataforma == 'twitch' %}
+                <iframe src="https://player.twitch.tv/?video={{v.video_id}}&parent={{request.host}}&muted=true" allowfullscreen></iframe>
 
-            {% elif plataforma == 'kwai' %}
-                <iframe src="https://www.kwai.com/embed/{{video_id}}" allowfullscreen></iframe>
+            {% elif v.plataforma == 'kwai' %}
+                <iframe src="https://www.kwai.com/embed/{{v.video_id}}" allowfullscreen></iframe>
             {% endif %}
         </div>
 
         <div class="video-info">
-            <a href="/perfil/{{telefono_propone}}" class="perfil-link">@{{telefono_propone[-4:]}}</a>
-            <p class="video-titulo">{{titulo}}</p>
-            <span class="plataforma-tag">{{plataforma|upper}}</span>
+            <a href="/perfil/{{v.telefono_creador}}" class="perfil-link">@{{v.telefono_creador[-4:]}}</a>
+            <p class="video-titulo">{{v.titulo}}</p>
+            <span class="plataforma-tag">{{v.plataforma|upper}}</span>
         </div>
 
         <div class="acciones-lateral">
-            <button class="btn-accion" onclick="reportarVideo({{id}})">🚩</button>
+            <button class="btn-accion" onclick="reportarVideo({{v.id}})">🚩</button>
         </div>
     </div>
     {% endfor %}
@@ -151,8 +152,6 @@
 </div>
 
 <div id="fb-root"></div>
-<script async src="https://www.tiktok.com/embed.js"></script>
-<script async src="//www.instagram.com/embed.js"></script>
 <script async defer crossorigin="anonymous" src="https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v18.0"></script>
 <script>
 function reportarVideo(video_id) {
