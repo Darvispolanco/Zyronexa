@@ -789,7 +789,7 @@ def videos():
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("""
         SELECT 
-            v.identificación as id, 
+            v.id, 
             v."ID de video" as video_id, 
             v.plataforma, 
             v."título" as titulo, 
@@ -801,7 +801,7 @@ def videos():
         WHERE v.estado = 'aprobado' 
         AND LOWER(v."categorías") = %s
         AND v."ID de video" IS NOT NULL
-        ORDER BY v.fecha_creación DESC LIMIT 20
+        ORDER BY v.id DESC LIMIT 20
     """, (categoria,))
     
     videos = cursor.fetchall()
