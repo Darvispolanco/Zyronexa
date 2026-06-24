@@ -1,9 +1,7 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-import requests
 import stripe
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
-from datetime import datetime, timedelta
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file, flash
+from datetime import datetime
 import pytz
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -17,21 +15,17 @@ import pandas as pd
 from io import BytesIO
 load_dotenv()
 
-
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "clave_secreta_123")
 
-# Config carpeta uploads
 UPLOAD_FOLDER = 'static/comprobantes'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Config Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 STRIPE_ACCOUNT_ID = os.getenv("STRIPE_ACCOUNT_ID")
 
-# Config
 PROPIETARIO_TELEFONO = "84907210"
 PASSWORD_PROPIETARIO = os.getenv("PASSWORD_PROPIETARIO", "123456")
 TIPO_CAMBIO = 36
@@ -50,11 +44,10 @@ PLANES = {
     10: {"nombre": "Plan Zyronexa Elite", "precio": 1000000, "ganancia_diaria": 100000, "porcentaje": 10.0}
 }
 
-# CONFIG VIDEOS - TODAS LAS PLATAFORMAS
 PLATAFORMAS = {
     'tiktok': {'dominios': ['tiktok.com'], 'regex': r'/video/(\d+)'},
     'youtube': {'dominios': ['youtube.com', 'youtu.be'], 'regex': [r'v=([A-Za-z0-9_-]{11})', r'youtu\.be/([A-Za-z0-9_-]{11})']},
-    'instagram': {'dominios': ['instagram.com'], 'regex': r'/reel/([A-Za-z0-9_-]+)'},
+    'instagram': {'dominios': ['instagram.com'], 'regex': r'/(reel|p)/([A-Za-z0-9_-]+)'},
     'facebook': {'dominios': ['facebook.com', 'fb.watch'], 'regex': [r'v=(\d+)', r'fb\.watch/([A-Za-z0-9_-]+)']},
     'vimeo': {'dominios': ['vimeo.com'], 'regex': r'vimeo\.com/(\d+)'},
     'twitch': {'dominios': ['twitch.tv'], 'regex': r'/videos/(\d+)'},
@@ -107,48 +100,22 @@ def crear_base_datos():
             fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             fecha_pago TIMESTAMP,
             notas_pago TEXT,
-            comprobante_url TEXT
+            comprobante_url TEXT,
+            stripe_transfer_id TEXT,
+            stripe_payout_id TEXT
         );
     """)
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS videos_feed (
+        CREATE TABLE IF NOT EXISTS videos (
             id SERIAL PRIMARY KEY,
             telefono_creador VARCHAR(20) NOT NULL,
-            video_id VARCHAR(100) NOT NULL,
-            plataforma VARCHAR(20) NOT NULL,
-            categoria VARCHAR(50) NOT NULL,
-            titulo VARCHAR(100),
+            url_video TEXT NOT NULL,
+            titulo VARCHAR(255) DEFAULT 'Video',
+            categoria VARCHAR(50) DEFAULT 'general',
             estado VARCHAR(20) DEFAULT 'pendiente',
-            fecha_creado TIMESTAMP DEFAULT NOW()
+            fecha_creacion TIMESTAMP DEFAULT NOW()
         );
     """)
-    cursor.execute("""
-        DO $$
-        BEGIN
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='historial' AND column_name='comprobante_url') THEN
-                ALTER TABLE historial ADD COLUMN comprobante_url TEXT;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='historial' AND column_name='stripe_transfer_id') THEN
-                ALTER TABLE historial ADD COLUMN stripe_transfer_id TEXT;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='historial' AND column_name='stripe_payout_id') THEN
-                ALTER TABLE historial ADD COLUMN stripe_payout_id TEXT;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='historial' AND column_name='fecha_pago') THEN
-                ALTER TABLE historial ADD COLUMN fecha_pago TIMESTAMP;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='historial' AND column_name='notas_pago') THEN
-                ALTER TABLE historial ADD COLUMN notas_pago TEXT;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='precio_plan') THEN
-                ALTER TABLE usuarios ADD COLUMN precio_plan INTEGER DEFAULT 0;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='fecha_upgrade') THEN
-                ALTER TABLE usuarios ADD COLUMN fecha_upgrade TIMESTAMP;
-            END IF;
-        END $$;
-    """)
-    conexion.commit()
     cursor.execute("""
         DO $$
         BEGIN
@@ -158,22 +125,18 @@ def crear_base_datos():
         END $$;
     """)
     conexion.commit()
-    cursor.execute("SELECT id, contrasena FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
-    usuario_existente = cursor.fetchone()
-    if not usuario_existente:
+    cursor.execute("SELECT id FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
+    if not cursor.fetchone():
         cursor.execute("""
-            INSERT INTO usuarios (nombre, telefono, contrasena, saldo_real, saldo_bono, es_admin, stripe_account_id)
-            VALUES (%s, %s, %s, 0, 0, 1, %s)
+            INSERT INTO usuarios (nombre, telefono, contrasena, es_admin, stripe_account_id)
+            VALUES (%s, %s, %s, 1, %s)
         """, ("Admin Zyronexa", PROPIETARIO_TELEFONO, generate_password_hash(PASSWORD_PROPIETARIO), STRIPE_ACCOUNT_ID))
-        conexion.commit()
-    else:
-        cursor.execute("UPDATE usuarios SET contrasena = %s, es_admin = 1, stripe_account_id = %s WHERE telefono = %s",
-            (generate_password_hash(PASSWORD_PROPIETARIO), STRIPE_ACCOUNT_ID, PROPIETARIO_TELEFONO))
         conexion.commit()
     cursor.close()
     conexion.close()
 
 crear_base_datos()
+
 def obtener_saldo(telefono):
     conexion = conectar_db()
     cursor = conexion.cursor()
@@ -182,6 +145,7 @@ def obtener_saldo(telefono):
     cursor.close()
     conexion.close()
     return result[0] if result else 0
+
 def extraer_id_video(url):
     url = url.lower().strip()
     if any(p in url for p in PALABRAS_BLOQUEADAS):
@@ -195,9 +159,9 @@ def extraer_id_video(url):
                     return match.group(1), plataforma, None
             return None, None, f"Link de {plataforma} inválido"
     return None, None, "Plataforma no soportada. Usa: TikTok, YouTube, Instagram, Facebook, Vimeo, Twitch o Kwai"
+
 @app.route("/")
 def index():
-    # Si ya está logueado, lo mandamos al feed
     if "usuario" in session:
         next_url = request.args.get('next')
         if next_url:
@@ -205,10 +169,8 @@ def index():
                 next_url = '/' + next_url
             return redirect(next_url)
         return redirect(url_for("videos"))
-    
-    # Si no está logueado, muestra index.html con login/registro
     return render_template("index.html")
-    
+
 @app.route("/registro", methods=["POST"])
 def registro():
     datos = request.get_json(silent=True) or request.form
@@ -240,9 +202,9 @@ def registro():
         conexion.rollback()
         return jsonify({"success": False, "error": "Teléfono ya registrado"}), 400
     except psycopg2.Error as e:
-        conexion.rollback()
-        print("ERROR DB:", str(e))
-        return jsonify({"success": True, "redirect": "/videos", "message": "Registro exitoso. Recibiste C$500 de bono"})
+    conexion.rollback()
+    print("ERROR DB:", str(e))
+    return jsonify({"success": False, "error": "Error interno del servidor"}), 500
     finally:
         cursor.close()
         conexion.close()
@@ -256,7 +218,7 @@ def login():
                 next_url = '/' + next_url
             return redirect(next_url)
         return render_template("index.html")
-    
+
     datos = request.get_json(silent=True) or request.form
     telefono = datos.get("telefono", "").strip()
     contrasena = datos.get("password") or datos.get("contrasena", "")
@@ -269,9 +231,14 @@ def login():
     cursor.close()
     conexion.close()
     if usuario and check_password_hash(usuario["contrasena"], contrasena):
-        session["usuario"] = dict(usuario)
+        session["usuario"] = {
+    "id": usuario["id"],
+    "telefono": usuario["telefono"],
+    "nombre": usuario["nombre"],
+    "es_admin": usuario["es_admin"]
+}
         session["usuario_id"] = usuario["id"]
-        next_url = request.args.get('next', 'videos')  # <-- quité 1 tab
+        next_url = request.args.get('next', 'videos')
         if not next_url.startswith('/'):
             next_url = '/' + next_url
         return jsonify({"success": True, "redirect": next_url})
@@ -281,44 +248,56 @@ def login():
 def home():
     if "usuario" not in session:
         return redirect(url_for('index', next='home'))
-    
+
     user_id = session.get("usuario_id") or session.get("usuario", {}).get("id")
+
     if not user_id:
         session.clear()
         return redirect(url_for('index', next='home'))
+
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
+
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
     usuario = cursor.fetchone()
+
     cursor.close()
     conexion.close()
+
     if not usuario:
         session.clear()
         return redirect('/login')
+
     if usuario.get('es_admin') == 1:
         return redirect(url_for("propietario_dashboard"))
-    
-    usuario['saldo_total'] = (usuario['saldo_real'] or 0) + (usuario['saldo_bono'] or 0)
-    
-    return render_template('inversion.html', usuario=usuario, planes=PLANES, stripe_key=STRIPE_PUBLISHABLE_KEY or "")
+
+    usuario['saldo_total'] = (usuario.get('saldo_real') or 0) + (usuario.get('saldo_bono') or 0)
+
+    return render_template(
+        'inversion.html',
+        usuario=usuario,
+        planes=PLANES,
+        stripe_key=STRIPE_PUBLISHABLE_KEY or ""
+    ))
+
 @app.route("/create-deposit-session", methods=["POST"])
 def create_deposit_session():
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
     data = request.json
-    monto_cordobas = int(data.get("monto"))
+    monto_cordobas = int(data.get("monto") or 0)
+    if monto_cordobas <= 0:
+    return jsonify({"error": "Monto inválido"}), 400
     monto_usd_centavos = int((monto_cordobas / TIPO_CAMBIO) * 100)
-    if monto_usd_centavos < 50:
-        return jsonify({"error": "Monto mínimo C$18"}), 400
+if monto_usd_centavos < 50:
+    return jsonify({"error": "Monto mínimo no alcanzado"}), 400
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{
                 "price_data": {
                     "currency": "usd",
-                    "product_data": {
-                        "name": "Recarga de saldo Zyronexa"
-                    },
+                    "product_data": {"name": "Recarga de saldo Zyronexa"},
                     "unit_amount": monto_usd_centavos,
                 },
                 "quantity": 1,
@@ -349,7 +328,9 @@ def retirar():
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
     data = request.json
-    monto_solicitado = int(data.get("monto"))
+    monto_solicitado = int(data.get("monto") or 0)
+if monto_solicitado <= 0:
+    return jsonify({"error": "Monto inválido"}), 400
     metodo = data.get("metodo")
     banco_destino = data.get("banco", "").strip()
     nombre_titular = data.get("nombre_titular", "").strip()
@@ -491,9 +472,7 @@ def comprar_plan():
             line_items=[{
                 "price_data": {
                     "currency": "usd",
-                    "product_data": {
-                        "name": f'{PLANES[plan_valido]["nombre"]} - C${precio_a_pagar}'
-                    },
+                    "product_data": {"name": f'{PLANES[plan_valido]["nombre"]} - C${precio_a_pagar}'},
                     "unit_amount": monto_usd,
                 },
                 "quantity": 1,
@@ -513,24 +492,21 @@ def comprar_plan():
 def compra_exitosa():
     return render_template("compra_exitosa.html")
 
-
-
 @app.route("/cobrar_recompensa", methods=["POST"])
 def cobrar_recompensa():
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
-    
+
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
     usuario = cursor.fetchone()
-    
+
     if usuario["producto_activo"] == 0:
         cursor.close()
         conexion.close()
         return jsonify({"error": "No tienes producto activo"}), 400
 
-    # Fix timezone Nicaragua - no toca tu BD
     nical_tz = pytz.timezone('America/Managua')
     hoy_nical_str = datetime.now(nical_tz).strftime('%Y-%m-%d')
 
@@ -541,12 +517,12 @@ def cobrar_recompensa():
 
     ganancia_usuario = usuario["ganancia_diaria"]
     comision_propietario = int(ganancia_usuario * 0.10)
-    
+
     cursor.execute("""
         UPDATE usuarios SET saldo_real = saldo_real + %s, total_generado = total_generado + %s, ultima_recompensa = %s
         WHERE id = %s
     """, (ganancia_usuario, ganancia_usuario, hoy_nical_str, usuario["id"]))
-    
+
     cursor.execute("UPDATE usuarios SET saldo_real = saldo_real + %s WHERE telefono = %s", (comision_propietario, PROPIETARIO_TELEFONO))
     cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'ganancia', %s, 'Ganancia diaria', 'completado')", (usuario["telefono"], ganancia_usuario))
     cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'comision', %s, %s, 'completado')", (PROPIETARIO_TELEFONO, comision_propietario, f'Comisión 10% de {usuario["telefono"]}'))
@@ -554,6 +530,7 @@ def cobrar_recompensa():
     cursor.close()
     conexion.close()
     return jsonify({"success": True, "message": f"Ganaste C${ganancia_usuario}. Puedes cobrar todos los días"})
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     payload = request.data
@@ -634,27 +611,6 @@ def webhook():
             return jsonify({"error": str(e)}), 500
     return jsonify({"success": True}), 200
 
-@app.route("/retirar_propietario", methods=["POST"])
-def retirar_propietario():
-    if "usuario" not in session or session["usuario"]["telefono"] != PROPIETARIO_TELEFONO:
-        return jsonify({"error": "No autorizado"}), 401
-    data = request.json
-    monto_cordobas = int(data.get("monto"))
-    conexion = conectar_db()
-    cursor = conexion.cursor(cursor_factory=RealDictCursor)
-    cursor.execute("SELECT saldo_real FROM usuarios WHERE telefono = %s", (PROPIETARIO_TELEFONO,))
-    propietario = cursor.fetchone()
-    if monto_cordobas > propietario["saldo_real"]:
-        cursor.close()
-        conexion.close()
-        return jsonify({"error": "Saldo insuficiente"}), 400
-    cursor.execute("UPDATE usuarios SET saldo_real = saldo_real - %s WHERE telefono = %s", (monto_cordobas, PROPIETARIO_TELEFONO))
-    cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'retiro', %s, 'Retiro propietario', 'completado')", (PROPIETARIO_TELEFONO, monto_cordobas))
-    conexion.commit()
-    cursor.close()
-    conexion.close()
-    return jsonify({"success": True, "message": "Retiro registrado. Haz el Payout manual en Stripe Dashboard"})
-
 @app.route("/propietario")
 def propietario_dashboard():
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
@@ -684,22 +640,6 @@ def propietario_dashboard():
         FROM historial WHERE tipo='retiro' AND estado='pagado' AND DATE(fecha_pago)=CURRENT_DATE
     """)
     total_hoy = cursor.fetchone()['total'] or 0
-
-    # VIDEOS - AGREGADO
-    cursor.execute("""
-        SELECT v.*, u.nombre FROM videos_feed v
-        JOIN usuarios u ON v.telefono_creador = u.telefono
-        WHERE v.estado = 'pendiente' ORDER BY v.fecha_creado DESC
-    """)
-    videos_pendientes = cursor.fetchall()
-
-    cursor.execute("""
-        SELECT v.*, u.nombre FROM videos_feed v
-        JOIN usuarios u ON v.telefono_creador = u.telefono
-        WHERE v.estado = 'reportado' ORDER BY v.fecha_creado DESC
-    """)
-    videos_reportados = cursor.fetchall()
-
     cursor.execute("SELECT * FROM usuarios WHERE telefono!= %s ORDER BY id DESC", (PROPIETARIO_TELEFONO,))
     usuarios = cursor.fetchall()
     cursor.execute("SELECT * FROM historial WHERE telefono = %s ORDER BY fecha DESC LIMIT 20", (PROPIETARIO_TELEFONO,))
@@ -721,22 +661,16 @@ def propietario_dashboard():
         retiros=retiros,
         retiros_pendientes=retiros_pendientes,
         retiros_hoy=retiros_hoy,
-        planes=PLANES,
-        videos_pendientes=videos_pendientes,
-        videos_reportados=videos_reportados
+        planes=PLANES
     )
 
 @app.route("/marcar_pagado/<int:id>", methods=["POST"])
 def marcar_pagado(id):
-    print(f"=== MARCANDO PAGADO ID: {id} ===") # LOG 1
-    
-    if "usuario" not in session or session["usuario"]["telefono"] != PROPIETARIO_TELEFONO:
+    if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
         return jsonify({"error": "No autorizado"}), 401
-
     notas = request.form.get('notas', '')
     comprobante = request.files.get('comprobante')
     url_comprobante = None
-
     if comprobante and comprobante.filename != '':
         filename = secure_filename(f"retiro_{id}_{datetime.now().timestamp()}.jpg")
         path = os.path.join(UPLOAD_FOLDER, filename)
@@ -819,122 +753,102 @@ def logout():
 def videos():
     if "usuario" not in session:
         return redirect(url_for('index', next='videos'))
-    
+    categoria = request.args.get("cat", "general")
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
-    
-    # Trae videos + nombre del usuario que lo subió
     cursor.execute("""
-        SELECT 
-            v.id,
-            v.url_video,
-            v.titulo,
-            v.telefono_creador,
-            u.nombre as nombre_usuario
+        SELECT v.*, u.nombre as nombre_usuario
         FROM videos v
-        INNER JOIN usuarios u ON v.telefono_creador = u.telefono
-        WHERE v.estado = 'aprobado'
-        ORDER BY v.fecha_creacion DESC
-    """)
-    videos = cursor.fetchall()
-    
+        JOIN usuarios u ON v.telefono_creador = u.telefono
+        WHERE v.estado = 'aprobado' AND v.categoria = %s
+        ORDER BY v.fecha_creacion DESC LIMIT 20
+    """, (categoria,))
+    videos_db = cursor.fetchall()
     cursor.close()
     conexion.close()
-    
-    return render_template("feed_videos.html", videos=videos)
-
-
-def obtener_video_limpio(url_tiktok):
-    import requests
-    api_url = f"https://www.tikwm.com/api/?url={url_tiktok}"
-    try:
-        response = requests.get(api_url, timeout=15)
-        data = response.json()
-        print(f"Tikwm response: {data}")
-        
-        if data.get('code') == 0 and data.get('data'):
-            url_limpia = data['data'].get('play') or data['data'].get('wmplay')
-            titulo = data['data'].get('title', 'Video TikTok')
-            return url_limpia, titulo
-        else:
-            print(f"Tikwm error: {data.get('msg')}")
-            return None, None
-    except Exception as e:
-        print(f"Error conectando tikwm: {e}")
-        return None, None
+    return render_template("feed_videos.html", videos=videos_db, cat_actual=categoria)
 
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
     if "usuario" not in session:
         return redirect(url_for('index', next='proponer_video'))
-    
+
+    if obtener_saldo(session["usuario"]["telefono"]) < 100:
+        flash("Solo miembros con C$100+ invertidos pueden promocionar videos")
+        return redirect(url_for('videos'))
+
     if request.method == "GET":
         return render_template("proponer_video.html")
-    
-    url_tiktok = request.form.get('url_tiktok')
-    telefono = session["usuario"]["telefono"]
-    
-    if not url_tiktok:
-        flash("Pega un link válido")
+
+    url = request.form.get("url", "").strip()
+    titulo = request.form.get("titulo", "").strip()[:100]
+    categoria = request.form.get("categoria", "general")
+
+    if any(p in titulo.lower() for p in PALABRAS_BLOQUEADAS):
+        flash("Título contiene palabras prohibidas")
         return redirect(url_for('proponer_video'))
-    
-    if 'tiktok.com' not in url_tiktok.lower():
-        flash("Solo aceptamos links de TikTok")
+
+    video_id, plataforma, error = extraer_id_video(url)
+    if error:
+        flash(error)
         return redirect(url_for('proponer_video'))
-    
-    url_limpia, titulo = obtener_video_limpio(url_tiktok)
-    
-    if not url_limpia:
-        flash("No se pudo procesar el video. Verifica el link")
-        return redirect(url_for('proponer_video'))
-    
+
     conexion = conectar_db()
     cursor = conexion.cursor()
-    try:
-        cursor.execute("""
-            INSERT INTO videos (telefono_creador, url_video, titulo, categoria, estado) 
-            VALUES (%s, %s, %s, %s, %s)
-        """, (telefono, url_limpia, titulo or 'Video TikTok', 'general', 'aprobado'))
-        conexion.commit()
-        flash("Video propuesto con éxito")
-        return redirect(url_for('videos'))
-    except Exception as e:
-        conexion.rollback()
-        print(f"Error DB: {e}")
-        flash("Error guardando el video")
-        return redirect(url_for('proponer_video'))
-    finally:
-        cursor.close()
-        conexion.close()
+    cursor.execute("""
+        INSERT INTO videos (telefono_creador, url_video, titulo, categoria, estado)
+        VALUES (%s, %s, %s, %s, 'pendiente')
+    """, (session["usuario"]["telefono"], url, titulo or f'Video de {plataforma}', categoria))
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    flash("Video enviado a revisión. Aparecerá en 24h si es aprobado.")
+    return redirect(url_for('videos'))
+
+@app.route("/reportar_video/<int:video_id>", methods=["POST"])
+def reportar_video(video_id):
+    if "usuario" not in session:
+        return jsonify({"error": "Login"}), 401
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE videos SET estado = 'reportado' WHERE id = %s AND estado = 'aprobado'", (video_id,))
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    return jsonify({"ok": True})
+
 @app.route("/perfil")
 def mi_perfil():
     if "usuario" not in session:
         return redirect(url_for('index', next='perfil'))
-    
+
     user_id = session.get("usuario_id") or session.get("usuario", {}).get("id")
-    
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
-    
-    # Solo datos del usuario por ahora
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
     usuario = cursor.fetchone()
-    
+
+    cursor.execute("""
+        SELECT COUNT(*) as total,
+               COUNT(CASE WHEN estado='aprobado' THEN 1 END) as aprobados,
+               COUNT(CASE WHEN estado='pendiente' THEN 1 END) as pendientes,
+               COUNT(CASE WHEN estado='rechazado' THEN 1 END) as rechazados
+        FROM videos WHERE telefono_creador = %s
+    """, (usuario['telefono'],))
+    stats = cursor.fetchone()
+
     cursor.close()
     conexion.close()
-    
-    # Stats falsas temporalmente hasta que crees la tabla videos
+
     stats_videos = {
-        'videos_aprobados': 0,
-        'videos_pendientes': 0,
-        'videos_rechazados': 0,
-        'total_videos': 0
+        'videos_aprobados': stats['aprobados'] or 0,
+        'videos_pendientes': stats['pendientes'] or 0,
+        'videos_rechazados': stats['rechazados'] or 0,
+        'total_videos': stats['total'] or 0
     }
-    
-    return render_template("perfil.html", 
-        usuario=usuario,
-        stats_videos=stats_videos
-    )
+
+    return render_template("perfil.html", usuario=usuario, stats_videos=stats_videos)
+
 @app.route("/perfil/<telefono>")
 def perfil(telefono):
     if "usuario" not in session:
@@ -987,7 +901,7 @@ def aprobar_video(id):
         return jsonify({"error": "No autorizado"}), 401
     conexion = conectar_db()
     cursor = conexion.cursor()
-    cursor.execute("UPDATE videos_feed SET estado = 'aprobado' WHERE id = %s", (id,))
+    cursor.execute("UPDATE videos SET estado = 'aprobado' WHERE id = %s", (id,))
     conexion.commit()
     cursor.close()
     conexion.close()
@@ -999,11 +913,11 @@ def rechazar_video(id):
         return jsonify({"error": "No autorizado"}), 401
     conexion = conectar_db()
     cursor = conexion.cursor()
-    cursor.execute("DELETE FROM videos_feed WHERE id = %s", (id,))
+    cursor.execute("UPDATE videos SET estado = 'rechazado' WHERE id = %s", (id,))
     conexion.commit()
     cursor.close()
     conexion.close()
     return jsonify({"success": True})
-
+    
 if __name__ == "__main__":
     app.run(debug=True)
