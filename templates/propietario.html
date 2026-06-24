@@ -5,21 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zyronexa - Panel Propietario</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1400px; margin: 0 auto; }
         .header {
             background: white;
             padding: 20px;
@@ -29,10 +22,10 @@
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
+            gap: 15px;
         }
-        .header h1 {
-            color: #2c5364;
-        }
+        .header h1 { color: #2c5364; }
         .badge-owner {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
@@ -78,7 +71,7 @@
             color: #27ae60;
             margin-top: 5px;
         }
-        .acciones-section, .usuarios-section, .historial-section, .retiros-section {
+        .acciones-section, .usuarios-section, .historial-section, .retiros-section, .videos-section {
             background: white;
             padding: 25px;
             border-radius: 15px;
@@ -103,43 +96,18 @@
             width: 100%;
             margin-bottom: 10px;
         }
-        .btn:hover {
-            background: #203a43;
-            transform: scale(1.02);
-        }
-        .btn-retirar {
-            background: #27ae60;
-            font-size: 18px;
-        }
-        .btn-retirar:hover {
-            background: #229954;
-        }
-        .btn-copy {
-            background: #3498db;
-            padding: 8px 15px;
-            font-size: 14px;
-            width: auto;
-            margin: 5px;
-        }
-        .btn-pagado {
-            background: #27ae60;
-            padding: 8px 15px;
-            font-size: 14px;
-            width: auto;
-            margin: 5px;
-        }
-        .btn-export {
-            background: #9b59b6;
-            padding: 10px 20px;
-            font-size: 14px;
-            width: auto;
-        }
+        .btn:hover { background: #203a43; transform: scale(1.02); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        .btn-retirar { background: #27ae60; font-size: 18px; }
+        .btn-retirar:hover:not(:disabled) { background: #229954; }
+        .btn-copy { background: #3498db; padding: 8px 15px; font-size: 14px; width: auto; margin: 5px; }
+        .btn-pagado { background: #27ae60; padding: 8px 15px; font-size: 14px; width: auto; margin: 5px; }
+        .btn-export { background: #9b59b6; padding: 10px 20px; font-size: 14px; width: auto; }
+        .table-wrapper { overflow-x: auto; margin-top: 20px; }
         .tabla-usuarios {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            overflow-x: auto;
-            display: block;
+            min-width: 800px;
         }
         .tabla-usuarios th {
             background: #2c5364;
@@ -151,77 +119,20 @@
         }
         .tabla-usuarios td {
             padding: 12px;
-            border-bottom: 1px solid #e0e0;
+            border-bottom: 1px solid #e0e0e0;
             white-space: nowrap;
         }
-        .tabla-usuarios tr:hover {
-            background: #f5f5f5;
-        }
-        .badge-activo {
-            background: #d4edda;
-            color: #155724;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .badge-inactivo {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .badge-pendiente {
-            background: #fff3cd;
-            color: #856404;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .badge-pagado {
-            background: #d4edda;
-            color: #155724;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .historial-item {
-            padding: 15px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .historial-item:last-child {
-            border-bottom: none;
-        }
-        .tipo-venta {
-            color: #27ae60;
-            font-weight: bold;
-        }
-        .tipo-comision {
-            color: #9b59b6;
-            font-weight: bold;
-        }
-        .tipo-retiro {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-        .tipo-deposito {
-            color: #3498db;
-            font-weight: bold;
-        }
+        .tabla-usuarios tr:hover { background: #f5f5f5; }
+        .badge-activo { background: #d4edda; color: #155724; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge-inactivo { background: #f8d7da; color: #721c24; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge-pendiente { background: #fff3cd; color: #856404; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge-pagado { background: #d4edda; color: #155724; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge-reportado { background: #f8d7da; color: #721c24; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
         .modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0,0,0,0.7);
             justify-content: center;
             align-items: center;
@@ -236,49 +147,22 @@
             max-height: 90vh;
             overflow-y: auto;
         }
-        .modal-content h2 {
-            margin-bottom: 20px;
-            color: #2c5364;
-        }
+        .modal-content h2 { margin-bottom: 20px; color: #2c5364; }
         .modal-content input, .modal-content textarea {
             width: 100%;
             padding: 12px;
             margin: 10px 0;
-            border: 2px solid #e0e0;
+            border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
             font-family: inherit;
         }
-        .modal-content label {
-            font-weight: bold;
-            color: #333;
-            display: block;
-            margin-top: 10px;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .modal-buttons button {
-            flex: 1;
-        }
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
+        .modal-content label { font-weight: bold; color: #333; display: block; margin-top: 10px; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-buttons button { flex: 1; }
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .info-box {
             background: #e3f2fd;
             border-left: 4px solid #2196f3;
@@ -293,10 +177,7 @@
             margin: 10px 0;
             border-radius: 8px;
         }
-        .retiro-card.pagado {
-            background: #f0f9ff;
-            border-left: 4px solid #27ae60;
-        }
+        .retiro-card.pagado { background: #f0f9ff; border-left: 4px solid #27ae60; }
         .retiro-datos {
             background: #f5f5f5;
             padding: 12px;
@@ -305,34 +186,23 @@
             border-radius: 5px;
             font-size: 14px;
         }
-        .retiro-datos div {
-            margin: 5px 0;
-        }
-        .vacio {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
+        .retiro-datos div { margin: 5px 0; }
+        .vacio { text-align: center; padding: 40px; color: #999; }
+        .tabs-container { margin-bottom: 20px; }
         .tab {
             display: inline-block;
             padding: 10px 20px;
-            background: #e0e0;
+            background: #e0e0e0;
             cursor: pointer;
             margin-right: 5px;
             border-radius: 5px 5px 0 0;
             font-weight: bold;
             transition: all 0.3s;
+            border: none;
         }
-        .tab.active {
-            background: #2c5364;
-            color: white;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
+        .tab.active { background: #2c5364; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         .filtros-bar {
             display: flex;
             gap: 10px;
@@ -342,15 +212,12 @@
         }
         .filtros-bar input, .filtros-bar select {
             padding: 10px;
-            border: 2px solid #e0e0;
+            border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 14px;
         }
-        .filtros-bar input {
-            flex: 1;
-            min-width: 200px;
-        }
-                .video-card {
+        .filtros-bar input { flex: 1; min-width: 200px; }
+        .video-card {
             background: #f5f5f5;
             border-left: 4px solid #3498db;
             padding: 15px;
@@ -359,6 +226,7 @@
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
         .video-preview {
             width: 120px;
@@ -368,29 +236,11 @@
             overflow: hidden;
             flex-shrink: 0;
         }
-        .video-preview iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            pointer-events: none;
-        }
-        .video-info {
-            flex: 1;
-        }
-        .video-info h4 {
-            margin-bottom: 5px;
-            color: #333;
-        }
-        .video-info p {
-            font-size: 13px;
-            color: #666;
-            margin: 3px 0;
-        }
-        .video-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+        .video-preview iframe { width: 100%; height: 100%; border: none; pointer-events: none; }
+        .video-info { flex: 1; min-width: 200px; }
+        .video-info h4 { margin-bottom: 5px; color: #333; }
+        .video-info p { font-size: 13px; color: #666; margin: 3px 0; }
+        .video-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .btn-aprobar {
             background: #27ae60;
             color: white;
@@ -411,466 +261,351 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .badge-reportado {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div>
-            <h1>Zyronexa - Panel Propietario</h1>
-            <span class="badge-owner">ADMIN</span>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Zyronexa - Panel Propietario</h1>
+                <span class="badge-owner">ADMIN</span>
+            </div>
+            <div style="font-size: 18px;">
+                <strong>Tu saldo: C${{ "{:,}".format(propietario.saldo_real) }}</strong>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                {% if stats.limite_bampro - stats.total_hoy_bampro > 0 %}
+                <button class="btn btn-retirar" style="width: auto; margin: 0; padding: 12px 25px;" onclick="abrirModalRetiro()">
+                    💸 RETIRAR MI DINERO
+                </button>
+                {% else %}
+                <button class="btn btn-retirar" style="width: auto; margin: 0; padding: 12px 25px;" disabled>
+                    ⚠️ Límite BAMPRO alcanzado hoy
+                </button>
+                {% endif %}
+                <button class="logout-btn" onclick="window.location.href='/logout'">Cerrar Sesión</button>
+            </div>
         </div>
-        <div style="margin-top: 10px; font-size: 18px;">
-            <strong>Tu saldo: C${{ "{:,}".format(propietario.saldo_real) }}</strong>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>TU SALDO REAL</h3>
+                <div class="value">C${{ "{:,}".format(propietario.saldo_real) }}</div>
+                <div class="subvalue">✓ Dinero 100% tuyo - Retirable</div>
+            </div>
+            <div class="stat-card">
+                <h3>TOTAL VENTAS</h3>
+                <div class="value">C${{ "{:,}".format(stats.total_ventas) }}</div>
+                <div class="subvalue">{{ stats.total_usuarios_activos }} usuarios con plan</div>
+            </div>
+            <div class="stat-card">
+                <h3>COMISIONES DIARIAS</h3>
+                <div class="value">C${{ "{:,}".format(stats.comisiones_diarias) }}</div>
+                <div class="subvalue">10% extra de ganancias</div>
+            </div>
+            <div class="stat-card">
+                <h3>RETIROS HOY</h3>
+                <div class="value">C${{ "{:,}".format(stats.total_hoy_bampro) }}</div>
+                <div class="subvalue">Límite: C${{ "{:,}".format(stats.limite_bampro) }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>TOTAL RETIRADO</h3>
+                <div class="value">C${{ "{:,}".format(propietario.total_retirado) }}</div>
+                <div class="subvalue">Histórico</div>
+            </div>
+            <div class="stat-card">
+                <h3>CUPO BAMPRO HOY</h3>
+                <div class="value">C${{ "{:,}".format(stats.limite_bampro - stats.total_hoy_bampro) }}</div>
+                <div class="subvalue">Disponible de C${{ "{:,}".format(stats.limite_bampro) }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>VIDEOS PENDIENTES</h3>
+                <div class="value">{{ videos_pendientes|length if videos_pendientes else 0 }}</div>
+                <div class="subvalue">Por aprobar</div>
+            </div>
         </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            {% if stats.limite_bampro - stats.total_hoy_bampro > 0 %}
-            <button class="btn btn-retirar" style="width: auto; margin: 0; padding: 12px 25px;" onclick="abrirModalRetiro()">
-                💸 RETIRAR MI DINERO
+                <div class="tabs-container">
+            <button class="tab active" onclick="mostrarTab('retiros', this)">
+                Retiros BAMPRO <span class="badge-pendiente">{{ retiros_pendientes|length }}</span>
             </button>
-            {% else %}
-            <button class="btn btn-retirar" style="width: auto; margin: 0; padding: 12px 25px;" disabled>
-                ⚠️ Límite BAMPRO alcanzado hoy
+            <button class="tab" onclick="mostrarTab('videos', this)">
+                Videos <span class="badge-pendiente">{{ videos_pendientes|length if videos_pendientes else 0 }}</span>
             </button>
-            {% endif %}
-            <button class="logout-btn" onclick="window.location.href='/logout'">Cerrar Sesión</button>
-        </div>
-    </div>
-
-    <div id="alert" class="alert"></div>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>TU SALDO REAL</h3>
-            <div class="value">
-                C${{ "{:,}".format(propietario.saldo_real) }}
-            </div>
-            <div class="subvalue">
-                ✓ Dinero 100% tuyo - Retirable
-            </div>
-        </div>
-        <div class="stat-card">
-            <h3>TOTAL VENTAS</h3>
-            <div class="value">
-                C${{ "{:,}".format(stats.total_ventas) }}
-            </div>
-            <div class="subvalue">
-                {{ stats.total_usuarios_activos }} usuarios con plan
-            </div>
-        </div>
-        <div class="stat-card">
-            <h3>COMISIONES DIARIAS</h3>
-            <div class="value">
-                C${{ "{:,}".format(stats.comisiones_diarias) }}
-            </div>
-            <div class="subvalue">
-                10% extra de ganancias
-            </div>
-        </div>
-        <div class="stat-card">
-            <h3>RETIROS HOY</h3>
-            <div class="value">
-                C${{ "{:,}".format(stats.total_hoy_bampro) }}
-            </div>
-            <div class="subvalue">
-                Límite: C${{ "{:,}".format(stats.limite_bampro) }}
-            </div>
-        </div>
-        <div class="stat-card">
-            <h3>TOTAL RETIRADO</h3>
-            <div class="value">
-                C${{ "{:,}".format(propietario.total_retirado) }}
-            </div>
-            <div class="subvalue">
-                Histórico
-            </div>
-        </div>
-    </div>
-
-    <div>
-        <div class="stat-card">
-            <h3>CUPO BAMPRO HOY</h3>
-            <div class="value">
-                C${{ "{:,}".format(stats.limite_bampro - stats.total_hoy_bampro) }}
-            </div>
-            <div class="subvalue">
-                Disponible de C${{ "{:,}".format(stats.limite_bampro) }}
-            </div>
-        </div>
-                <div class="stat-card">
-            <h3>VIDEOS PENDIENTES</h3>
-            <div class="value">
-                {{ videos_pendientes|length if videos_pendientes else 0 }}
-            </div>
-            <div class="subvalue">
-                Por aprobar
-            </div>
-        </div>
-        <div class="tab active" onclick="mostrarTab('retiros')">
-            Retiros BAMPRO <span class="badge-pendiente">{{ retiros_pendientes|length }}</span>
-        </div>
-        <div class="tab" onclick="mostrarTab('acciones')">
-            Acciones
-        </div>
-        <div class="tab" onclick="mostrarTab('usuarios')">
-            Usuarios
-        </div>
-        <div class="tab" onclick="mostrarTab('historial')">
-            Historial
-        </div>
-    </div>
-    <div class="tab" onclick="mostrarTab('videos')">
-        Videos <span class="badge-pendiente">{{ videos_pendientes|length if videos_pendientes else 0 }}</span>
-    </div>
-    <div id="retiros" class="tab-content active retiros-section">
-        <h2 class="section-title">Gestión de Retiros BAMPRO</h2>
-
-        <div class="filtros-bar">
-            <button class="tab active" onclick="filtrarRetiros('pendiente')">Pendientes <span class="badge-pendiente">{{ retiros_pendientes|length }}</span></button>
-            <button class="tab" onclick="filtrarRetiros('pagado_hoy')">Pagados Hoy <span class="badge-activo">{{ retiros_hoy|length }}</span></button>
-            <button class="tab" onclick="filtrarRetiros('todos')">Historial Completo</button>
-            <input type="text" id="buscadorRetiro" placeholder="Buscar por nombre, teléfono..." onkeyup="buscarRetiro()">
-            <select id="filtroBanco" onchange="filtrarBanco()">
-                <option value="">Todos los bancos</option>
-                <option value="BAC">BAC</option>
-                <option value="BANPRO">BANPRO</option>
-                <option value="LAFISE">LAFISE</option>
-                <option value="FICOHSA">FICOHSA</option>
-                <option value="AVANZ">AVANZ</option>
-            </select>
-            <button class="btn btn-export" onclick="exportarExcel()">📊 Exportar Hoy</button>
+            <button class="tab" onclick="mostrarTab('acciones', this)">Acciones</button>
+            <button class="tab" onclick="mostrarTab('usuarios', this)">Usuarios</button>
+            <button class="tab" onclick="mostrarTab('historial', this)">Historial</button>
         </div>
 
-        <div id="listaRetiros">
-            {% if retiros %}
-            {% for r in retiros %}
-            <div class="retiro-card {{ 'pagado' if r.estado == 'pagado' else '' }}"
-                data-estado="{{ r.estado }}"
-                data-banco="{{ r.datos.banco }}"
-                data-nombre="{{ r.nombre|lower }}"
-                data-telefono="{{ r.telefono }}">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <b>{{ r.nombre }}</b> - {{ r.telefono }}
-                        <span class="badge-{{ r.estado }}">{{ r.datos.metodo|upper }} - {{ r.estado|upper }}</span><br>
-                        <small>Solicitado: {{ r.fecha }}</small>
-                        {% if r.fecha_pago %}
-                        <br><small style="color:#27ae60;">Pagado: {{ r.fecha_pago }}</small>
+        <div id="retiros" class="tab-content active retiros-section">
+            <h2 class="section-title">Gestión de Retiros BAMPRO</h2>
+            <div class="filtros-bar">
+                <button class="tab active" onclick="filtrarRetiros('pendiente', this)">Pendientes <span class="badge-pendiente">{{ retiros_pendientes|length }}</span></button>
+                <button class="tab" onclick="filtrarRetiros('pagado_hoy', this)">Pagados Hoy <span class="badge-activo">{{ retiros_hoy|length }}</span></button>
+                <button class="tab" onclick="filtrarRetiros('todos', this)">Historial Completo</button>
+                <input type="text" id="buscadorRetiro" placeholder="Buscar por nombre, teléfono..." onkeyup="buscarRetiro()">
+                <select id="filtroBanco" onchange="filtrarBanco()">
+                    <option value="">Todos los bancos</option>
+                    <option value="BAC">BAC</option>
+                    <option value="BANPRO">BANPRO</option>
+                    <option value="LAFISE">LAFISE</option>
+                    <option value="FICOHSA">FICOHSA</option>
+                    <option value="AVANZ">AVANZ</option>
+                </select>
+                <button class="btn btn-export" onclick="exportarExcel()">📊 Exportar Hoy</button>
+            </div>
+
+            <div id="listaRetiros">
+                {% if retiros %}
+                {% for r in retiros %}
+                <div class="retiro-card {{ 'pagado' if r.estado == 'pagado' else '' }}"
+                    data-estado="{{ r.estado }}"
+                    data-banco="{{ r.datos.banco }}"
+                    data-nombre="{{ r.nombre|lower }}"
+                    data-telefono="{{ r.telefono }}">
+                    <div style="display: flex; justify-content: space-between; align-items: start; width: 100%;">
+                        <div>
+                            <b>{{ r.nombre }}</b> - {{ r.telefono }}
+                            <span class="badge-{{ r.estado }}">{{ r.datos.metodo|upper }} - {{ r.estado|upper }}</span><br>
+                            <small>Solicitado: {{ r.fecha }}</small>
+                            {% if r.fecha_pago %}
+                            <br><small style="color:#27ae60;">Pagado: {{ r.fecha_pago }}</small>
+                            {% endif %}
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 18px; font-weight: bold; color: #e74c3c;">
+                                Solicita: C${{ r.datos.monto_solicitado }}
+                            </div>
+                            <div style="font-size: 22px; font-weight: bold; color: #27ae60;">
+                                Pagar: C${{ r.datos.monto_neto }}
+                            </div>
+                            <small>Comisión: C${{ r.datos.comision }}</small>
+                        </div>
+                    </div>
+
+                    <div class="retiro-datos">
+                        {% if r.datos.metodo == 'tarjeta' %}
+                        <div><b>Banco:</b> {{ r.datos.banco }}</div>
+                        <div><b>Tarjeta:</b> {{ r.datos.tarjeta }}</div>
+                        {% elif r.datos.metodo == 'billetera' %}
+                        <div><b>Billetera:</b> {{ r.datos.billetera }}</div>
+                        <div><b>Celular:</b> {{ r.datos.celular }}</div>
+                        {% elif r.datos.metodo == 'cuenta' %}
+                        <div><b>Banco:</b> {{ r.datos.banco }}</div>
+                        <div><b>Cuenta:</b> {{ r.datos.cuenta }}</div>
+                        {% endif %}
+                        <div><b>Titular:</b> {{ r.datos.titular }}</div>
+                        <div><b>Monto a enviar:</b> C${{ r.datos.monto_neto }}</div>
+                        {% if r.notas_pago %}
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
+                            <b>Notas:</b> {{ r.notas_pago }}
+                        </div>
+                        {% endif %}
+                        {% if r.comprobante_url %}
+                        <div>
+                            <a href="{{ r.comprobante_url }}" target="_blank" style="color:#3498db;">📎 Ver comprobante</a>
+                        </div>
                         {% endif %}
                     </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 18px; font-weight: bold; color: #e74c3c;">
-                            Solicita: C${{ r.datos.monto_solicitado }}
-                        </div>
-                        <div style="font-size: 22px; font-weight: bold; color: #27ae60;">
-                            Pagar: C${{ r.datos.monto_neto }}
-                        </div>
-                        <small>Comisión: C${{ r.datos.comision }}</small>
-                    </div>
-                </div>
 
-                <div class="retiro-datos">
+                    {% if r.estado == 'pendiente' %}
                     {% if r.datos.metodo == 'tarjeta' %}
-                    <div>
-                        <b>Banco:</b> {{ r.datos.banco }}
-                    </div>
-                    <div>
-                        <b>Tarjeta:</b> {{ r.datos.tarjeta }}
-                    </div>
+                    <button class="btn btn-copy" onclick="copiar('{{ r.datos.tarjeta }}')">Copiar Tarjeta</button>
                     {% elif r.datos.metodo == 'billetera' %}
-                    <div>
-                        <b>Billetera:</b> {{ r.datos.billetera }}
-                    </div>
-                    <div>
-                        <b>Celular:</b> {{ r.datos.celular }}
-                    </div>
+                    <button class="btn btn-copy" onclick="copiar('{{ r.datos.celular }}')">Copiar Celular</button>
                     {% elif r.datos.metodo == 'cuenta' %}
-                    <div>
-                        <b>Banco:</b> {{ r.datos.banco }}
-                    </div>
-                    <div>
-                        <b>Cuenta:</b> {{ r.datos.cuenta }}
-                    </div>
+                    <button class="btn btn-copy" onclick="copiar('{{ r.datos.cuenta }}')">Copiar Cuenta</button>
                     {% endif %}
-                    <div>
-                        <b>Titular:</b> {{ r.datos.titular }}
-                    </div>
-                    <div>
-                        <b>Monto a enviar:</b> C${{ r.datos.monto_neto }}
-                    </div>
-                    {% if r.notas_pago %}
-                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
-                        <b>Notas:</b> {{ r.notas_pago }}
-                    </div>
-                    {% endif %}
-                    {% if r.comprobante_url %}
-                    <div>
-                        <a href="{{ r.comprobante_url }}" target="_blank" style="color:#3498db;">📎 Ver comprobante</a>
-                    </div>
+                    <button class="btn btn-copy" onclick="copiar('{{ r.datos.monto_neto }}')">Copiar Monto</button>
+                    <button class="btn btn-pagado" onclick="abrirModalPago({{ r.id }}, '{{ r.nombre }}', {{ r.datos.monto_neto }})">✓ Marcar Pagado</button>
                     {% endif %}
                 </div>
-
-                {% if r.estado == 'pendiente' %}
-                {% if r.datos.metodo == 'tarjeta' %}
-                <button class="btn btn-copy" onclick="copiar('{{ r.datos.tarjeta }}')">Copiar Tarjeta</button>
-                {% elif r.datos.metodo == 'billetera' %}
-                <button class="btn btn-copy" onclick="copiar('{{ r.datos.celular }}')">Copiar Celular</button>
-                {% elif r.datos.metodo == 'cuenta' %}
-                <button class="btn btn-copy" onclick="copiar('{{ r.datos.cuenta }}')">Copiar Cuenta</button>
-                {% endif %}
-                <button class="btn btn-copy" onclick="copiar('{{ r.datos.monto_neto }}')">Copiar Monto</button>
-                <button class="btn btn-pagado" onclick="abrirModalPago({{ r.id }}, '{{ r.nombre }}', {{ r.datos.monto_neto }})">✓ Marcar Pagado</button>
-                {% endif %}
-            </div>
-            {% endfor %}
-            {% else %}
-            <div class="vacio">
-                No hay retiros 🎉
-            </div>
-            {% endif %}
-        </div>
-    </div>
-        <div id="videos" class="tab-content videos-section">
-        <h2 class="section-title">Gestión de Videos</h2>
-        
-        <div class="filtros-bar">
-            <button class="tab active" onclick="filtrarVideos('pendiente')">Pendientes <span class="badge-pendiente">{{ videos_pendientes|length if videos_pendientes else 0 }}</span></button>
-            <button class="tab" onclick="filtrarVideos('reportado')">Reportados <span class="badge-reportado">{{ videos_reportados|length if videos_reportados else 0 }}</span></button>
-        </div>
-
-        <div id="listaVideos">
-            <h3 style="margin: 20px 0 10px 0;">Videos Pendientes de Aprobación</h3>
-            {% if videos_pendientes %}
-            {% for v in videos_pendientes %}
-            <div class="video-card" data-estado="pendiente">
-                <div class="video-preview">
-                    {% if v.plataforma == 'youtube' %}
-                        <iframe src="https://www.youtube.com/embed/{{v.video_id}}?mute=1&controls=0"></iframe>
-                    {% elif v.plataforma == 'tiktok' %}
-                        <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}"></iframe>
-                    {% else %}
-                        <div style="color:#fff;font-size:10px;padding:20px 5px;text-align:center;">{{v.plataforma|upper}}</div>
-                    {% endif %}
-                </div>
-                <div class="video-info">
-                    <h4>{{v.titulo}}</h4>
-                    <p><strong>Usuario:</strong> <a href="/perfil/{{v.telefono_creador}}" style="color: #3498db;">@{{v.telefono_creador[-4:]}}</a> ({{v.nombre}})</p>
-                    <p><strong>Categoría:</strong> <span class="badge-pendiente">{{v.categoria}}</span></p>
-                    <p><strong>Plataforma:</strong> {{v.plataforma|upper}}</p>
-                    <p><strong>Fecha:</strong> {{v.fecha_creado.strftime('%d/%m/%Y %H:%M')}}</p>
-                </div>
-                <div class="video-actions">
-                    <button class="btn-aprobar" onclick="aprobarVideo({{v.id}})">✓ Aprobar</button>
-                    <button class="btn-rechazar" onclick="rechazarVideo({{v.id}})">✗ Rechazar</button>
-                </div>
-            </div>
-            {% endfor %}
-            {% else %}
-            <div class="vacio">
-                No hay videos pendientes 🎉
-            </div>
-            {% endif %}
-
-            <h3 style="margin: 40px 0 10px 0;">Videos Reportados</h3>
-            {% if videos_reportados %}
-            {% for v in videos_reportados %}
-            <div class="video-card" data-estado="reportado" style="border-left-color: #e74c3c;">
-                <div class="video-preview">
-                    {% if v.plataforma == 'youtube' %}
-                        <iframe src="https://www.youtube.com/embed/{{v.video_id}}?mute=1&controls=0"></iframe>
-                    {% elif v.plataforma == 'tiktok' %}
-                        <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}"></iframe>
-                    {% else %}
-                        <div style="color:#fff;font-size:10px;padding:20px 5px;text-align:center;">{{v.plataforma|upper}}</div>
-                    {% endif %}
-                </div>
-                <div class="video-info">
-                    <h4>{{v.titulo}}</h4>
-                    <p><strong>Usuario:</strong> <a href="/perfil/{{v.telefono_creador}}" style="color: #3498db;">@{{v.telefono_creador[-4:]}}</a> ({{v.nombre}})</p>
-                    <p><strong>Categoría:</strong> <span class="badge-reportado">{{v.categoria}}</span></p>
-                    <p><strong>Plataforma:</strong> {{v.plataforma|upper}}</p>
-                    <p style="color: #e74c3c; font-weight: bold;">⚠️ REPORTADO POR USUARIOS</p>
-                </div>
-                <div class="video-actions">
-                    <button class="btn-aprobar" onclick="aprobarVideo({{v.id}})">Restaurar</button>
-                    <button class="btn-rechazar" onclick="banearUsuario('{{v.telefono_creador}}')">Banear User</button>
-                </div>
-            </div>
-            {% endfor %}
-            {% else %}
-            <div class="vacio">
-                No hay videos reportados
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    <div id="acciones" class="tab-content acciones-section">
-        <h2 class="section-title">Acciones de Propietario</h2>
-        <div class="info-box">
-            <strong>💰 Importante:</strong> Este saldo es dinero real confirmado por Stripe. Puedes retirarlo cuando quieras. Los usuarios no pueden tocarlo.
-        </div>
-        <button class="btn btn-retirar" onclick="abrirModalRetiro()">
-            💸 RETIRAR MI DINERO - C${{ "{:,}".format(propietario.saldo_real) }}
-        </button>
-        <button class="btn" onclick="window.location.href='/dashboard'">
-            👤 Ver Vista de Usuario
-        </button>
-    </div>
-
-    <div id="usuarios" class="tab-content usuarios-section">
-        <h2 class="section-title">Usuarios Registrados - {{ usuarios|length }} total</h2>
-        <table class="tabla-usuarios">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Teléfono</th>
-                    <th>Plan</th>
-                    <th>Saldo Real</th>
-                    <th>Bono</th>
-                    <th>Ganancia/Día</th>
-                    <th>Total Generado</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in usuarios %}
-                <tr>
-                    <td>{{ user.nombre }}</td>
-                    <td>{{ user.telefono }}</td>
-                    <td>
-                        {% if user.producto_activo > 0 %}
-                        {{ planes[user.producto_activo].nombre }}
-                        {% else %}
-                        Sin plan
-                        {% endif %}
-                    </td>
-                    <td>C${{ "{:,}".format(user.saldo_real) }}</td>
-                    <td>C${{ "{:,}".format(user.saldo_bono) }}</td>
-                    <td>C${{ "{:,}".format(user.ganancia_diaria) }}</td>
-                    <td>C${{ "{:,}".format(user.total_generado) }}</td>
-                    <td>
-                        {% if user.producto_activo > 0 %}
-                        <span class="badge-activo">ACTIVO</span>
-                        {% else %}
-                        <span class="badge-inactivo">INACTIVO</span>
-                        {% endif %}
-                    </td>
-                </tr>
                 {% endfor %}
-            </tbody>
-        </table>
+                {% else %}
+                <div class="vacio">No hay retiros 🎉</div>
+                {% endif %}
+            </div>
+        </div>
+                <div id="videos" class="tab-content videos-section">
+            <h2 class="section-title">Gestión de Videos</h2>
+            <div class="filtros-bar">
+                <button class="tab active" onclick="filtrarVideos('pendiente', this)">Pendientes <span class="badge-pendiente">{{ videos_pendientes|length if videos_pendientes else 0 }}</span></button>
+                <button class="tab" onclick="filtrarVideos('reportado', this)">Reportados <span class="badge-reportado">{{ videos_reportados|length if videos_reportados else 0 }}</span></button>
+            </div>
+
+            <div id="listaVideos">
+                <h3 style="margin: 20px 0 10px 0;">Videos Pendientes de Aprobación</h3>
+                {% if videos_pendientes %}
+                {% for v in videos_pendientes %}
+                <div class="video-card" data-estado="pendiente">
+                    <div class="video-preview">
+                        {% if v.plataforma == 'youtube' %}
+                            <iframe src="https://www.youtube.com/embed/{{v.video_id}}?mute=1&controls=0"></iframe>
+                        {% elif v.plataforma == 'tiktok' %}
+                            <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}"></iframe>
+                        {% else %}
+                            <div style="color:#fff;font-size:10px;padding:20px 5px;text-align:center;">{{v.plataforma|upper}}</div>
+                        {% endif %}
+                    </div>
+                    <div class="video-info">
+                        <h4>{{v.titulo}}</h4>
+                        <p><strong>Usuario:</strong> <a href="/perfil/{{v.telefono_creador}}" style="color: #3498db;">@{{v.telefono_creador[-4:]}}</a> ({{v.nombre}})</p>
+                        <p><strong>Categoría:</strong> <span class="badge-pendiente">{{v.categoria}}</span></p>
+                        <p><strong>Plataforma:</strong> {{v.plataforma|upper}}</p>
+                        <p><strong>Fecha:</strong> {{v.fecha_creado.strftime('%d/%m/%Y %H:%M')}}</p>
+                    </div>
+                    <div class="video-actions">
+                        <button class="btn-aprobar" onclick="aprobarVideo({{v.id}})">✓ Aprobar</button>
+                        <button class="btn-rechazar" onclick="rechazarVideo({{v.id}})">✗ Rechazar</button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="vacio">No hay videos pendientes 🎉</div>
+                {% endif %}
+
+                <h3 style="margin: 40px 0 10px 0;">Videos Reportados</h3>
+                {% if videos_reportados %}
+                {% for v in videos_reportados %}
+                <div class="video-card" data-estado="reportado" style="border-left-color: #e74c3c;">
+                    <div class="video-preview">
+                        {% if v.plataforma == 'youtube' %}
+                            <iframe src="https://www.youtube.com/embed/{{v.video_id}}?mute=1&controls=0"></iframe>
+                        {% elif v.plataforma == 'tiktok' %}
+                            <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}"></iframe>
+                        {% else %}
+                            <div style="color:#fff;font-size:10px;padding:20px 5px;text-align:center;">{{v.plataforma|upper}}</div>
+                        {% endif %}
+                    </div>
+                    <div class="video-info">
+                        <h4>{{v.titulo}}</h4>
+                        <p><strong>Usuario:</strong> <a href="/perfil/{{v.telefono_creador}}" style="color: #3498db;">@{{v.telefono_creador[-4:]}}</a> ({{v.nombre}})</p>
+                        <p><strong>Categoría:</strong> <span class="badge-reportado">{{v.categoria}}</span></p>
+                        <p><strong>Plataforma:</strong> {{v.plataforma|upper}}</p>
+                        <p style="color: #e74c3c; font-weight: bold;">⚠️ REPORTADO POR USUARIOS</p>
+                    </div>
+                    <div class="video-actions">
+                        <button class="btn-aprobar" onclick="aprobarVideo({{v.id}})">Restaurar</button>
+                        <button class="btn-rechazar" onclick="banearUsuario('{{v.telefono_creador}}')">Banear User</button>
+                    </div>
+                {% endfor %}
+                {% else %}
+                <div class="vacio">No hay videos reportados</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="acciones" class="tab-content acciones-section">
+            <h2 class="section-title">Acciones de Propietario</h2>
+            <div class="info-box">
+                <strong>💰 Importante:</strong> Este saldo es dinero real confirmado por Stripe. Puedes retirarlo cuando quieras. Los usuarios no pueden tocarlo.
+            </div>
+            <button class="btn btn-retirar" onclick="abrirModalRetiro()">
+                💸 RETIRAR MI DINERO - C${{ "{:,}".format(propietario.saldo_real) }}
+            </button>
+            <button class="btn" onclick="window.location.href='/dashboard'">
+                👤 Ver Vista de Usuario
+            </button>
+        </div>
+
+        <div id="usuarios" class="tab-content usuarios-section">
+            <h2 class="section-title">Usuarios Registrados - {{ usuarios|length }} total</h2>
+            <div class="table-wrapper">
+                <table class="tabla-usuarios">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Plan</th>
+                            <th>Saldo Real</th>
+                            <th>Bono</th>
+                            <th>Ganancia/Día</th>
+                            <th>Total Generado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in usuarios %}
+                        <tr>
+                            <td>{{ user.nombre }}</td>
+                            <td>{{ user.telefono }}</td>
+                            <td>
+                                {% if user.producto_activo > 0 %}
+                                {{ planes[user.producto_activo].nombre }}
+                                {% else %}
+                                Sin plan
+                                {% endif %}
+                            </td>
+                            <td>C${{ "{:,}".format(user.saldo_real) }}</td>
+                            <td>C${{ "{:,}".format(user.saldo_bono) }}</td>
+                            <td>C${{ "{:,}".format(user.ganancia_diaria) }}</td>
+                            <td>C${{ "{:,}".format(user.total_generado) }}</td>
+                            <td>
+                                {% if user.producto_activo > 0 %}
+                                <span class="badge-activo">ACTIVO</span>
+                                {% else %}
+                                <span class="badge-inactivo">INACTIVO</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+                <div id="historial" class="tab-content historial-section">
+            <h2 class="section-title">Historial de Ingresos</h2>
+            {% if historial %}
+            <div class="table-wrapper">
+                <table class="tabla-usuarios">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Descripción</th>
+                            <th>Compra</th>
+                            <th>Venta</th>
+                            <th>Comisión</th>
+                            <th>Retiro</th>
+                            <th>Depósito</th>
+                            <th>Ganancia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in historial %}
+                        <tr>
+                            <td>{{ item.fecha }}</td>
+                            <td>{{ item.descripcion }}</td>
+                            <td>{% if item.tipo == 'compra' %}<span style="color: #e74c3c; font-weight: bold;">-C${{ "{:,}".format(item.monto) }}</span>{% else %}-{% endif %}</td>
+                            <td>{% if item.tipo == 'venta' %}<span style="color: #27ae60; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>{% else %}-{% endif %}</td>
+                            <td>{% if item.tipo == 'comision' %}<span style="color: #9b59b6; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>{% else %}-{% endif %}</td>
+                            <td>{% if item.tipo == 'retiro' %}<span style="color: #e74c3c; font-weight: bold;">-C${{ "{:,}".format(item.monto) }}</span>{% else %}-{% endif %}</td>
+                            <td>{% if item.tipo == 'deposito' %}<span style="color: #3498db; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>{% else %}-{% endif %}</td>
+                            <td>{% if item.tipo == 'ganancia' %}<span style="color: #27ae60; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>{% else %}-{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr style="background: #2c5364; color: white; font-weight: bold;">
+                            <td colspan="2">TOTALES</td>
+                            <td>-C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'compra')|sum(attribute='monto')) }}</td>
+                            <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'venta')|sum(attribute='monto')) }}</td>
+                            <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'comision')|sum(attribute='monto')) }}</td>
+                            <td>-C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'retiro')|sum(attribute='monto')) }}</td>
+                            <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'deposito')|sum(attribute='monto')) }}</td>
+                            <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'ganancia')|sum(attribute='monto')) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #999;">No hay movimientos aún</p>
+            {% endif %}
+        </div>
     </div>
 
-    <div id="historial" class="tab-content historial-section">
-    <h2 class="section-title">Historial de Ingresos</h2>
-    {% if historial %}
-    <table class="tabla-usuarios">
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Descripción</th>
-                <th>Compra</th>
-                <th>Venta</th>
-                <th>Comisión</th>
-                <th>Retiro</th>
-                <th>Depósito</th>
-                <th>Ganancia</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in historial %}
-            <tr>
-                <td>{{ item.fecha }}</td>
-                <td>{{ item.descripcion }}</td>
-                
-                <!-- Compra -->
-                <td>
-                    {% if item.tipo == 'compra' %}
-                    <span style="color: #e74c3c; font-weight: bold;">-C${{ "{:,}".format(item.monto) }}</span>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-                
-                <!-- Venta -->
-                <td>
-                    {% if item.tipo == 'venta' %}
-                    <span style="color: #27ae60; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-                
-                <!-- Comisión -->
-                <td>
-                    {% if item.tipo == 'comision' %}
-                    <span style="color: #9b59b6; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-                
-                <!-- Retiro -->
-                <td>
-                    {% if item.tipo == 'retiro' %}
-                    <span style="color: #e74c3c; font-weight: bold;">-C${{ "{:,}".format(item.monto) }}</span>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-                
-                <!-- Depósito -->
-                <td>
-                    {% if item.tipo == 'deposito' %}
-                    <span style="color: #3498db; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-                
-                <!-- Ganancia -->
-                <td>
-                    {% if item.tipo == 'ganancia' %}
-                    <span style="color: #27ae60; font-weight: bold;">+C${{ "{:,}".format(item.monto) }}</span>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-
-<tr style="background: #2c5364; color: white; font-weight: bold;">
-    <td colspan="2">TOTALES</td>
-    <td>-C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'compra')|sum(attribute='monto')) }}</td>
-    <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'venta')|sum(attribute='monto')) }}</td>
-    <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'comision')|sum(attribute='monto')) }}</td>
-    <td>-C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'retiro')|sum(attribute='monto')) }}</td>
-    <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'deposito')|sum(attribute='monto')) }}</td>
-    <td>+C${{ "{:,}".format(historial|selectattr('tipo', 'equalto', 'ganancia')|sum(attribute='monto')) }}</td>
-</tr>
-        </tbody>
-    </table>
-    {% else %}
-    <p style="text-align: center; color: #999;">
-        No hay movimientos aún
-    </p>
-    {% endif %}
-</div>
-
-    <!-- Modal Retiro Propietario -->
     <div id="modalRetiro" class="modal">
         <div class="modal-content">
             <h2>Retirar Tu Dinero</h2>
-            <p>
-                Saldo disponible: <strong>C${{ "{:,}".format(propietario.saldo_real) }}</strong>
-            </p>
+            <p>Saldo disponible: <strong>C${{ "{:,}".format(propietario.saldo_real) }}</strong></p>
             <div class="info-box">
                 Este retiro se registra en la base de datos. Debes hacer el Payout manual desde tu Dashboard de Stripe a tu cuenta bancaria.
             </div>
@@ -882,22 +617,17 @@
         </div>
     </div>
 
-    <!-- Modal Marcar Pagado CON COMPROBANTE -->
     <div id="modalPago" class="modal">
         <div class="modal-content">
             <h2>Marcar Retiro como Pagado</h2>
             <p id="infoPago"></p>
-
             <div class="info-box">
                 <strong>⚠️ Importante:</strong> Solo marca pagado si YA enviaste el dinero desde BAMPRO Móvil
             </div>
-
             <label>Notas del pago:</label>
             <textarea id="notasPago" placeholder="Ej: Pagado por BAC 21/06 3:40pm Ref 847293" rows="3"></textarea>
-
             <label>Subir comprobante (opcional):</label>
             <input type="file" id="comprobantePago" accept="image/*">
-
             <div class="modal-buttons">
                 <button class="btn btn-pagado" onclick="confirmarPago()">Confirmar Pago</button>
                 <button class="btn" style="background: #ccc;" onclick="cerrarModal('modalPago')">Cancelar</button>
@@ -907,6 +637,7 @@
 
     <script>
         let retiroActualId = null;
+        const maxSaldo = {{ propietario.saldo_real }};
 
         function mostrarAlerta(mensaje, tipo) {
             const alert = document.getElementById('alert');
@@ -930,15 +661,14 @@
         }
 
         function abrirModalPago(id, nombre, monto) {
-            console.log('Abriendo modal para ID:', id); // Para debug
             retiroActualId = id;
             document.getElementById('infoPago').innerHTML = `<strong>${nombre}</strong> - C$${monto}`;
             document.getElementById('notasPago').value = '';
             document.getElementById('comprobantePago').value = '';
             document.getElementById('modalPago').style.display = 'flex';
         }
+
         async function confirmarPago() {
-            console.log('Confirmando pago para ID:', retiroActualId); // Para debug
             const notas = document.getElementById('notasPago').value;
             const comprobante = document.getElementById('comprobantePago').files[0];
             
@@ -975,18 +705,18 @@
             }
         }
 
-        function filtrarRetiros(estado) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+        function filtrarRetiros(estado, btn) {
+            document.querySelectorAll('#retiros .filtros-bar .tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
 
             document.querySelectorAll('.retiro-card').forEach(card => {
                 if (estado === 'todos') {
                     card.style.display = 'block';
                 } else if (estado === 'pagado_hoy') {
                     const esHoy = card.dataset.estado === 'pagado';
-                    card.style.display = esHoy ? 'block': 'none';
+                    card.style.display = esHoy ? 'block' : 'none';
                 } else {
-                    card.style.display = card.dataset.estado === estado ? 'block': 'none';
+                    card.style.display = card.dataset.estado === estado ? 'block' : 'none';
                 }
             });
         }
@@ -996,7 +726,7 @@
             document.querySelectorAll('.retiro-card').forEach(card => {
                 const nombre = card.dataset.nombre;
                 const telefono = card.dataset.telefono;
-                card.style.display = (nombre.includes(query) || telefono.includes(query)) ? 'block': 'none';
+                card.style.display = (nombre.includes(query) || telefono.includes(query)) ? 'block' : 'none';
             });
         }
 
@@ -1015,18 +745,15 @@
             window.location.href = '/exportar_retiros_hoy';
         }
 
-        function mostrarTab(tab) {
+        function mostrarTab(tab, btn) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tabs-container .tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tab).classList.add('active');
-            event.target.classList.add('active');
+            btn.classList.add('active');
         }
 
         async function solicitarRetiro() {
             const monto = document.getElementById('montoRetiro').value;
-            const maxSaldo = {{
-                propietario.saldo_real
-            }};
 
             if (!monto || monto < 1) {
                 mostrarAlerta('Ingresa un monto válido', 'error');
@@ -1043,11 +770,8 @@
             try {
                 const response = await fetch('/retirar_propietario', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        monto: parseInt(monto)})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ monto: parseInt(monto) })
                 });
                 const data = await response.json();
 
@@ -1063,14 +787,9 @@
             }
         }
 
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        }
-                function filtrarVideos(estado) {
-            document.querySelectorAll('#videos .tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+        function filtrarVideos(estado, btn) {
+            document.querySelectorAll('#videos .filtros-bar .tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
             document.querySelectorAll('.video-card').forEach(card => {
                 card.style.display = card.dataset.estado === estado ? 'flex' : 'none';
             });
@@ -1102,7 +821,20 @@
 
         async function banearUsuario(telefono) {
             if (!confirm(`¿Banear a ${telefono}? No podrá proponer más videos.`)) return;
-            mostrarAlerta('Función de banear pendiente de implementar en backend', 'error');
+            const res = await fetch(`/banear_usuario/${telefono}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                mostrarAlerta('Usuario baneado', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                mostrarAlerta(data.error || 'Error al banear', 'error');
+            }
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
         }
     </script>
 </body>
