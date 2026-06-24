@@ -690,13 +690,10 @@ def propietario_dashboard():
         retiros_pendientes=retiros_pendientes,
         retiros_hoy=retiros_hoy,
         planes=PLANES,
-        # <- AGREGA ESTAS 4 VARIABLES AL TEMPLATE
-        videos_pendientes=videos_pendientes,
-        videos_aprobados=videos_aprobados,
-        videos_rechazados=videos_rechazados,
-        lista_videos_pendientes=lista_videos_pendientes
+    # CAMBIA ESTAS 2 LÍNEAS:
+        videos_pendientes=lista_videos_pendientes,  # <- antes era el número, ahora es la lista
+        videos_reportados=[]  # <- agrega esta si no tienes reportados aún
     )
-
 @app.route("/marcar_pagado/<int:id>", methods=["POST"])
 def marcar_pagado(id):
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
