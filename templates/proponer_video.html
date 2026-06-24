@@ -127,22 +127,31 @@ function detectarPlataforma(url) {
     document.querySelectorAll('.plataforma-tag').forEach(t => t.classList.remove('active'));
     plataformaDetectada = '';
     videoIdExtraido = '';
-    
+
     if (url.includes('tiktok.com')) {
         plataformaDetectada = 'tiktok';
-        const match = url.match(/video\/(\d+)/);
-        if (match) videoIdExtraido = match[1];
+        // Link normal: tiktok.com/@user/video/12345
+        let match = url.match(/video\/(\d+)/);
+        if (match) {
+            videoIdExtraido = match[1];
+        }
+        // Links cortos: vt.tiktok.com / vm.tiktok.com
+        else if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com')) {
+            videoIdExtraido = url; // Se resuelve en backend
+        }
     } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
         plataformaDetectada = 'youtube';
-        const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        // youtube.com/watch?v=abc123 o youtu.be/abc123 o /shorts/abc123
+        const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
         if (match) videoIdExtraido = match[1];
     } else if (url.includes('instagram.com')) {
         plataformaDetectada = 'instagram';
-        const match = url.match(/\/p\/([a-zA-Z0-9_-]+)/);
-        if (match) videoIdExtraido = match[1];
+        // /p/abc123 o /reel/abc123 o /reels/abc123
+        const match = url.match(/\/(p|reel|reels)\/([a-zA-Z0-9_-]+)/);
+        if (match) videoIdExtraido = match[2];
     } else if (url.includes('facebook.com')) {
         plataformaDetectada = 'facebook';
-        const match = url.match(/videos\/(\d+)/);
+        const match = url.match(/(?:v=|videos\/)(\d+)/);
         if (match) videoIdExtraido = match[1];
     } else if (url.includes('vimeo.com')) {
         plataformaDetectada = 'vimeo';
@@ -156,8 +165,8 @@ function detectarPlataforma(url) {
         plataformaDetectada = 'kwai';
         videoIdExtraido = url;
     }
-    
-    if (plataformaDetectada) {
+
+    if (plataformaDetectada && videoIdExtraido) {
         document.querySelector(`[data-plat="${plataformaDetectada}"]`).classList.add('active');
     }
 }
