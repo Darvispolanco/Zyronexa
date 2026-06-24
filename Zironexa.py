@@ -789,8 +789,8 @@ def videos():
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("""
         SELECT 
-            v.id, 
-            v."ID de video" as video_id, 
+            v."identificación" as id, 
+            v."ID de vídeo" as video_id, 
             v.plataforma, 
             v."título" as titulo, 
             v.telefono_creador, 
@@ -800,8 +800,8 @@ def videos():
         JOIN usuarios u ON v.telefono_creador = u.telefono
         WHERE v.estado = 'aprobado' 
         AND LOWER(v."categorías") = %s
-        AND v."ID de video" IS NOT NULL
-        ORDER BY v.id DESC LIMIT 20
+        AND v."ID de vídeo" IS NOT NULL
+        ORDER BY v."identificación" DESC LIMIT 20
     """, (categoria,))
     
     videos = cursor.fetchall()
@@ -978,13 +978,40 @@ def perfil(telefono):
 def aprobar_video(id):
     if "usuario" not in session or session["usuario"]["telefono"]!= PROPIETARIO_TELEFONO:
         return jsonify({"error": "No autorizado"}), 401
+    
     conexion = conectar_db()
-    cursor = conexion.cursor()
-    cursor.execute("UPDATE videos_propuestos SET estado = 'aprobado' WHERE id = %s", (id,))
-    conexion.commit()
-    cursor.close()
-    conexion.close()
-    return jsonify({"success": True})
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        cursor.execute("SELECT * FROM videos_propuestos WHERE id = %s", (id,))
+        video = cursor.fetchone()
+        
+        if not video:
+            return jsonify({"error": "Video no encontrado"}), 404
+        
+        cursor.execute("""
+            INSERT INTO videos (telefono_creador, "ID de vídeo", plataforma, "título", "categorías", estado)
+            VALUES (%s, %s, %s, %s, %s, 'aprobado')
+            ON CONFLICT ("ID de vídeo", plataforma) DO NOTHING
+        """, (
+            video['telefono_creador'], 
+            video['video_id'],
+            video['plataforma'],
+            video['titulo'], 
+            video['categoria'].lower()
+        ))
+        
+        cursor.execute("UPDATE videos_propuestos SET estado = 'aprobado' WHERE id = %s", (id,))
+        conexion.commit()
+        return jsonify({"success": True})
+    
+    except Exception as e:
+        conexion.rollback()
+        print(f"[APROBAR] ERROR: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conexion.close()
 
 @app.route("/rechazar_video/<int:id>", methods=["POST"])
 def rechazar_video(id):
