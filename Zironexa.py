@@ -328,20 +328,25 @@ def deposito_cancelado():
 def retirar():
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
+    
     data = request.json
     monto_solicitado = int(data.get("monto") or 0)
-if monto_solicitado <= 0:
-    return jsonify({"error": "Monto inválido"}), 400
+    
+    if monto_solicitado <= 0:
+        return jsonify({"error": "Monto inválido"}), 400  # <-- línea 334, debe ir indentada
+    
     metodo = data.get("metodo")
     banco_destino = data.get("banco", "").strip()
     nombre_titular = data.get("nombre_titular", "").strip()
     telefono = session["usuario"]["telefono"]
+    
     if monto_solicitado < 360:
         return jsonify({"error": "Monto mínimo de retiro: C$360"}), 400
     if not nombre_titular:
         return jsonify({"error": "Nombre del titular requerido"}), 400
     if not banco_destino:
         return jsonify({"error": "Banco/Billetera destino requerido"}), 400
+    
     datos_retiro = {}
     if metodo == "tarjeta":
         numero_tarjeta = data.get("numero_tarjeta", "").replace(" ", "")
@@ -360,46 +365,56 @@ if monto_solicitado <= 0:
         datos_retiro = {"metodo": "cuenta", "cuenta": numero_cuenta, "banco": banco_destino, "titular": nombre_titular}
     else:
         return jsonify({"error": "Método de retiro no válido"}), 400
+    
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("SELECT saldo_real FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
     usuario = cursor.fetchone()
+    
     if monto_solicitado > usuario["saldo_real"]:
         cursor.close()
         conexion.close()
         return jsonify({"error": "Solo puedes retirar saldo real. El bono no es retirable"}), 400
+    
     comision = int(monto_solicitado * 0.10)
     monto_neto = monto_solicitado - comision
     datos_retiro["monto_neto"] = monto_neto
     datos_retiro["comision"] = comision
     datos_retiro["monto_solicitado"] = monto_solicitado
+    
     cursor.execute("""
         SELECT COALESCE(SUM((datos_retiro::json->>'monto_neto')::int), 0) as total_hoy
         FROM historial WHERE tipo='retiro' AND estado='pagado' AND DATE(fecha_pago) = CURRENT_DATE
     """)
     total_hoy = cursor.fetchone()['total_hoy'] or 0
+    
     if total_hoy + monto_neto > LIMITE_DIARIO_BAMPRO:
         cursor.close()
         conexion.close()
         return jsonify({"error": "Límite diario alcanzado. Intenta mañana."}), 400
+    
     cursor.execute("""
         SELECT COUNT(*) as retiros_hoy FROM historial
         WHERE telefono=%s AND tipo='retiro' AND DATE(fecha) = CURRENT_DATE
     """, (telefono,))
+    
     if cursor.fetchone()['retiros_hoy'] > 0:
         cursor.close()
         conexion.close()
         return jsonify({"error": "Solo 1 retiro por día permitido"}), 400
+    
     try:
         cursor.execute("""
             UPDATE usuarios SET saldo_real = saldo_real - %s, total_retirado = total_retirado + %s
             WHERE id = %s
         """, (monto_solicitado, monto_solicitado, session["usuario"]["id"]))
+        
         descripcion = f'Retiro {metodo} a {banco_destino}'
         cursor.execute("""
             INSERT INTO historial (telefono, tipo, monto, descripcion, estado, datos_retiro)
             VALUES (%s, 'retiro', %s, %s, 'pendiente', %s)
         """, (telefono, monto_solicitado, descripcion, json.dumps(datos_retiro)))
+        
         conexion.commit()
         cursor.execute("SELECT saldo_real FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
         session["usuario"]["saldo_real"] = cursor.fetchone()["saldo_real"]
