@@ -795,6 +795,20 @@ def videos():
             videos.append(v)
     
     return render_template("feed_videos.html", videos=videos, cat_actual=categoria)
+import requests
+import re
+
+def resolver_tiktok_url(url_corto):
+    try:
+        r = requests.head(url_corto, allow_redirects=True, timeout=5)
+        url_largo = r.url
+        match = re.search(r'video/(\d+)', url_largo)
+        if match:
+            return match.group(1)
+    except:
+        pass
+    return None
+
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
     if "usuario" not in session:
@@ -802,11 +816,11 @@ def proponer_video():
             return redirect("/login")
         return jsonify({"error": "No autorizado"}), 401
     
-    # Si es GET: mostrar formulario
+    # GET: mostrar formulario
     if request.method == "GET":
         return render_template("proponer_video.html")
     
-    # Si es POST: guardar video
+    # POST: guardar video
     if request.method == "POST":
         data = request.get_json()
         titulo = data.get("titulo")
@@ -816,6 +830,12 @@ def proponer_video():
         
         if not all([titulo, categoria, plataforma, video_id]):
             return jsonify({"error": "Faltan datos"}), 400
+        
+        # Resolver links cortos de TikTok
+        if plataforma == 'tiktok' and ('vt.tiktok.com' in video_id or 'vm.tiktok.com' in video_id):
+            video_id = resolver_tiktok_url(video_id)
+            if not video_id:
+                return jsonify({"error": "No se pudo resolver el link de TikTok"}), 400
         
         conexion = conectar_db()
         cursor = conexion.cursor()
@@ -840,7 +860,6 @@ def proponer_video():
         finally:
             cursor.close()
             conexion.close()
-
 @app.route("/reportar_video/<int:video_id>", methods=["POST"])
 def reportar_video(video_id):
     if "usuario" not in session:
