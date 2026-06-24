@@ -250,24 +250,20 @@ def home():
         return redirect(url_for('index', next='home'))
 
     user_id = session.get("usuario_id") or session.get("usuario", {}).get("id")
-
     if not user_id:
         session.clear()
         return redirect(url_for('index', next='home'))
-
+    
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
-
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
     usuario = cursor.fetchone()
-
     cursor.close()
     conexion.close()
-
+    
     if not usuario:
         session.clear()
         return redirect('/login')
-
     if usuario.get('es_admin') == 1:
         return redirect(url_for("propietario_dashboard"))
 
@@ -278,7 +274,7 @@ def home():
         usuario=usuario,
         planes=PLANES,
         stripe_key=STRIPE_PUBLISHABLE_KEY or ""
-    ))
+    )  # <-- solo 1 paréntesis aquí
 
 @app.route("/create-deposit-session", methods=["POST"])
 def create_deposit_session():
