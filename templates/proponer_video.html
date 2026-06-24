@@ -38,6 +38,9 @@
             background: #111; border: 1px solid #333; padding: 8px; 
             border-radius: 8px; text-align: center; font-size: 12px;
         }
+        .plataforma-tag.active {
+            background: #f5c542; color: #000; border-color: #f5c542; font-weight: bold;
+        }
         .btn-enviar {
             width: 100%; background: #f5c542; color: #000; border: none;
             padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700;
@@ -77,14 +80,14 @@
             <div class="form-group">
                 <label>Link del video</label>
                 <input type="url" id="url" name="url" placeholder="Pega link de TikTok, YouTube, Instagram..." required>
-                <div class="plataformas">
-                    <div class="plataforma-tag">TikTok</div>
-                    <div class="plataforma-tag">YouTube</div>
-                    <div class="plataforma-tag">Instagram</div>
-                    <div class="plataforma-tag">Facebook</div>
-                    <div class="plataforma-tag">Vimeo</div>
-                    <div class="plataforma-tag">Twitch</div>
-                    <div class="plataforma-tag">Kwai</div>
+                <div class="plataformas" id="plataformas">
+                    <div class="plataforma-tag" data-plat="tiktok">TikTok</div>
+                    <div class="plataforma-tag" data-plat="youtube">YouTube</div>
+                    <div class="plataforma-tag" data-plat="instagram">Instagram</div>
+                    <div class="plataforma-tag" data-plat="facebook">Facebook</div>
+                    <div class="plataforma-tag" data-plat="vimeo">Vimeo</div>
+                    <div class="plataforma-tag" data-plat="twitch">Twitch</div>
+                    <div class="plataforma-tag" data-plat="kwai">Kwai</div>
                 </div>
             </div>
 
@@ -112,6 +115,53 @@
     </div>
 
 <script>
+let plataformaDetectada = '';
+let videoIdExtraido = '';
+
+document.getElementById('url').addEventListener('input', (e) => {
+    const url = e.target.value;
+    detectarPlataforma(url);
+});
+
+function detectarPlataforma(url) {
+    document.querySelectorAll('.plataforma-tag').forEach(t => t.classList.remove('active'));
+    plataformaDetectada = '';
+    videoIdExtraido = '';
+    
+    if (url.includes('tiktok.com')) {
+        plataformaDetectada = 'tiktok';
+        const match = url.match(/video\/(\d+)/);
+        if (match) videoIdExtraido = match[1];
+    } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        plataformaDetectada = 'youtube';
+        const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (match) videoIdExtraido = match[1];
+    } else if (url.includes('instagram.com')) {
+        plataformaDetectada = 'instagram';
+        const match = url.match(/\/p\/([a-zA-Z0-9_-]+)/);
+        if (match) videoIdExtraido = match[1];
+    } else if (url.includes('facebook.com')) {
+        plataformaDetectada = 'facebook';
+        const match = url.match(/videos\/(\d+)/);
+        if (match) videoIdExtraido = match[1];
+    } else if (url.includes('vimeo.com')) {
+        plataformaDetectada = 'vimeo';
+        const match = url.match(/vimeo\.com\/(\d+)/);
+        if (match) videoIdExtraido = match[1];
+    } else if (url.includes('twitch.tv')) {
+        plataformaDetectada = 'twitch';
+        const match = url.match(/videos\/(\d+)/);
+        if (match) videoIdExtraido = match[1];
+    } else if (url.includes('kwai.com')) {
+        plataformaDetectada = 'kwai';
+        videoIdExtraido = url;
+    }
+    
+    if (plataformaDetectada) {
+        document.querySelector(`[data-plat="${plataformaDetectada}"]`).classList.add('active');
+    }
+}
+
 document.getElementById('formVideo').onsubmit = async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnEnviar');
@@ -121,18 +171,39 @@ document.getElementById('formVideo').onsubmit = async (e) => {
     msg.className = '';
     msg.textContent = '';
 
-    const formData = new FormData(e.target);
+    const titulo = document.getElementById('titulo').value;
+    const categoria = document.getElementById('categoria').value;
+    const url = document.getElementById('url').value;
+
+    if (!plataformaDetectada || !videoIdExtraido) {
+        msg.className = 'error';
+        msg.textContent = 'Link inválido o plataforma no soportada';
+        btn.disabled = false;
+        btn.textContent = 'Enviar a Revisión';
+        return;
+    }
 
     try {
-        const res = await fetch('/proponer_video', { method: 'POST', body: formData });
-        const text = await res.text();
-        if (res.ok) {
+        const res = await fetch('/proponer_video', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                titulo: titulo,
+                categoria: categoria,
+                plataforma: plataformaDetectada,
+                video_id: videoIdExtraido
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok && data.success) {
             msg.className = 'success';
-            msg.textContent = text;
-            setTimeout(() => window.location.href = '/videos', 2000);
+            msg.textContent = data.message || 'Video enviado para revisión';
+            setTimeout(() => window.location.href = '/videos', 1500);
         } else {
             msg.className = 'error';
-            msg.textContent = text;
+            msg.textContent = data.error || 'Error al enviar';
             btn.disabled = false;
             btn.textContent = 'Enviar a Revisión';
         }
