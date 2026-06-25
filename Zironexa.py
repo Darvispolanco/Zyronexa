@@ -770,7 +770,6 @@ def logout():
     return redirect(url_for("index"))
     
 @app.route("/videos")
-def @app.route("/videos")
 def videos():
     if "usuario" not in session:
         return redirect(url_for('index', next='videos'))
