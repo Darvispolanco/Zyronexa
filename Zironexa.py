@@ -779,19 +779,17 @@ def videos():
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("""
         SELECT 
-            v."identificación" as id, 
-            v."ID de video" as video_id, 
+            v.id as id, 
+            v.video_id as video_id, 
             v.plataforma, 
             v.titulo, 
             v.telefono_creador, 
-            v.categorias as categoria, 
+            v.categoria as categoria, 
             u.nombre
         FROM videos v
-        JOIN usuarios u ON v.telefono_creador = u.telefono
-        WHERE v.estado = 'aprobado' 
-        AND LOWER(v.categorias) = %s
-        AND v."ID de video" IS NOT NULL
-        ORDER BY v."identificación" DESC LIMIT 20
+        ...
+        AND v.video_id IS NOT NULL
+        ORDER BY v.id DESC LIMIT 20
     """, (categoria,))
     
     videos = cursor.fetchall()
