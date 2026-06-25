@@ -779,15 +779,17 @@ def videos():
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("""
         SELECT 
-            v.id as id, 
-            v.video_id as video_id, 
+            v.id, 
+            v.video_id, 
             v.plataforma, 
             v.titulo, 
             v.telefono_creador, 
-            v.categoria as categoria, 
+            v.categoria, 
             u.nombre
         FROM videos v
-        ...
+        JOIN usuarios u ON v.telefono_creador = u.telefono
+        WHERE v.estado = 'aprobado' 
+        AND LOWER(v.categoria) = %s
         AND v.video_id IS NOT NULL
         ORDER BY v.id DESC LIMIT 20
     """, (categoria,))
