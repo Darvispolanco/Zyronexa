@@ -87,12 +87,12 @@
 <body>
 
 <div class="categorias">
-    <a href="/videos?cat=general" class="{{'activo' if cat_actual == 'general'}}">General</a>
-    <a href="/videos?cat=motivacion" class="{{'activo' if cat_actual == 'motivacion'}}">Motivación</a>
-    <a href="/videos?cat=finanzas" class="{{'activo' if cat_actual == 'finanzas'}}">Finanzas</a>
-    <a href="/videos?cat=comedia" class="{{'activo' if cat_actual == 'comedia'}}">Comedia</a>
-    <a href="/videos?cat=datos" class="{{'activo' if cat_actual == 'datos'}}">Datos</a>
-    <a href="/videos?cat=tech" class="{{'activo' if cat_actual == 'tech'}}">Tech</a>
+    <a href="/videos?categoria=general" class="{{'activo' if cat_actual == 'general'}}">General</a>
+    <a href="/videos?categoria=motivacion" class="{{'activo' if cat_actual == 'motivacion'}}">Motivación</a>
+    <a href="/videos?categoria=finanzas" class="{{'activo' if cat_actual == 'finanzas'}}">Finanzas</a>
+    <a href="/videos?categoria=comedia" class="{{'activo' if cat_actual == 'comedia'}}">Comedia</a>
+    <a href="/videos?categoria=datos" class="{{'activo' if cat_actual == 'datos'}}">Datos</a>
+    <a href="/videos?categoria=tech" class="{{'activo' if cat_actual == 'tech'}}">Tech</a>
 </div>
 
 <div class="feed-container">
@@ -101,7 +101,15 @@
     <div class="video-card">
         <div class="video-wrapper">
             {% if v.plataforma == 'tiktok' %}
-                <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}" allowfullscreen></iframe>
+                <!-- TikTok: Si el ID es corto, usa el blockquote. Si es numérico, usa iframe -->
+                {% if v.video_id|length > 15 %}
+                    <iframe src="https://www.tiktok.com/embed/v2/{{v.video_id}}" allowfullscreen></iframe>
+                {% else %}
+                    <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@user/video/{{v.video_id}}" data-video-id="{{v.video_id}}" style="width: 100%; height: 100%;">
+                        <section></section>
+                    </blockquote>
+                    <script async src="https://www.tiktok.com/embed.js"></script>
+                {% endif %}
 
             {% elif v.plataforma == 'youtube' %}
                 <iframe src="https://www.youtube.com/embed/{{v.video_id}}?autoplay=0&mute=1&loop=1&playlist={{v.video_id}}&controls=1&modestbranding=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
