@@ -779,7 +779,7 @@ def videos():
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("""
         SELECT 
-            v."identificación" as id, 
+            v."identificacion" as id, 
             v."ID de video" as video_id, 
             v.plataforma, 
             v.titulo, 
@@ -791,7 +791,7 @@ def videos():
         WHERE v.estado = 'aprobado' 
         AND LOWER(v."categorías") = %s
         AND v."ID de video" IS NOT NULL
-        ORDER BY v."identificación" DESC LIMIT 20
+        ORDER BY v."identificacion" DESC LIMIT 20
     """, (categoria,))
     
     videos = cursor.fetchall()
@@ -865,7 +865,7 @@ def reportar_video(video_id):
     cursor = conexion.cursor()
     cursor.execute("""
         UPDATE videos SET estado = 'reportado' 
-        WHERE "identificación" = %s AND estado = 'aprobado'
+        WHERE "identificacion" = %s AND estado = 'aprobado'
     """, (video_id,))
     conexion.commit()
     cursor.close()
@@ -934,7 +934,7 @@ def perfil(telefono):
         SELECT "ID de vídeo" as video_id, plataforma 
         FROM videos
         WHERE telefono_creador = %s AND estado = 'aprobado'
-        ORDER BY "identificación" DESC LIMIT 30
+        ORDER BY "identificacion" DESC LIMIT 30
     """, (telefono,))
     urls_videos = cursor.fetchall()
 
