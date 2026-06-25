@@ -774,9 +774,13 @@ def videos():
     if "usuario" not in session:
         return redirect(url_for('index', next='videos'))
     
-    categoria = request.args.get("cat", "general").lower()
+    # 1. El frontend ahora manda ?categoria=general, no ?cat=
+    categoria = request.args.get("categoria", "general").lower()
+    
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    
+    # 2. Query con nombres de columna ya arreglados: id, video_id, etc
     cursor.execute("""
         SELECT 
             v.id, 
@@ -784,21 +788,23 @@ def videos():
             v.plataforma, 
             v.titulo, 
             v.telefono_creador, 
-            v.categoria, 
+            v.categoria,
+            v.estado,
             u.nombre
-        FROM videos v
-        JOIN usuarios u ON v.telefono_creador = u.telefono
-        WHERE v.estado = 'aprobado' 
+        FROM public.videos v
+        LEFT JOIN usuarios u ON v.telefono_creador = u.telefono
+        WHERE v.estado = 'activo' 
         AND LOWER(v.categoria) = %s
-        AND v.video_id IS NOT NULL
-        ORDER BY v.id DESC LIMIT 20
+        ORDER BY v.fecha_creacion DESC 
+        LIMIT 20
     """, (categoria,))
     
-    videos = cursor.fetchall()
+    videos_db = cursor.fetchall()
     cursor.close()
     conexion.close()
     
-    return render_template("feed_videos.html", videos=videos, cat_actual=categoria)
+    # 3. Pasa cat_actual para que se marque la pestaña activa
+    return render_template("feed_videos.html", videos=videos_db, cat_actual=categoria)
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
     if "usuario" not in session:
