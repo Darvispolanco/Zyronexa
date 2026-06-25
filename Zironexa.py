@@ -780,9 +780,9 @@ def videos():
     cursor.execute("""
         SELECT 
             v."identificación" as id, 
-            v."ID de vídeo" as video_id, 
+            v."ID de video" as video_id, 
             v.plataforma, 
-            v."título" as titulo, 
+            v.titulo, 
             v.telefono_creador, 
             v."categorías" as categoria, 
             u.nombre
@@ -790,7 +790,7 @@ def videos():
         JOIN usuarios u ON v.telefono_creador = u.telefono
         WHERE v.estado = 'aprobado' 
         AND LOWER(v."categorías") = %s
-        AND v."ID de vídeo" IS NOT NULL
+        AND v."ID de video" IS NOT NULL
         ORDER BY v."identificación" DESC LIMIT 20
     """, (categoria,))
     
@@ -799,7 +799,6 @@ def videos():
     conexion.close()
     
     return render_template("feed_videos.html", videos=videos, cat_actual=categoria)
-
 @app.route("/proponer_video", methods=["GET", "POST"])
 def proponer_video():
     if "usuario" not in session:
@@ -876,12 +875,18 @@ def reportar_video(video_id):
 def mi_perfil():
     if "usuario" not in session:
         return redirect(url_for('index', next='perfil'))
-
-    user_id = session.get("usuario_id") or session.get("usuario", {}).get("id")
+    
+    telefono = session["usuario"]["telefono"]
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
-    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
+    
+    cursor.execute("SELECT telefono, fecha_registro, total_depositado FROM usuarios WHERE telefono = %s", (telefono,))
     usuario = cursor.fetchone()
+    
+    if not usuario:
+        cursor.close()
+        conexion.close()
+        return "Usuario no encontrado", 404
 
     cursor.execute("""
         SELECT COUNT(*) as total,
@@ -889,21 +894,20 @@ def mi_perfil():
                COUNT(CASE WHEN estado='pendiente' THEN 1 END) as pendientes,
                COUNT(CASE WHEN estado='rechazado' THEN 1 END) as rechazados
         FROM videos WHERE telefono_creador = %s
-    """, (usuario['telefono'],))
+    """, (telefono,))
     stats = cursor.fetchone()
-
+    
     cursor.close()
     conexion.close()
-
+    
     stats_videos = {
         'videos_aprobados': stats['aprobados'] or 0,
         'videos_pendientes': stats['pendientes'] or 0,
         'videos_rechazados': stats['rechazados'] or 0,
         'total_videos': stats['total'] or 0
     }
-
+    
     return render_template("perfil.html", usuario=usuario, stats_videos=stats_videos)
-
 @app.route("/perfil/<telefono>")
 def perfil(telefono):
     if "usuario" not in session:
@@ -956,9 +960,9 @@ def aprobar_video(id):
             return jsonify({"error": "Video no encontrado"}), 404
         
         cursor.execute("""
-            INSERT INTO videos (telefono_creador, "ID de vídeo", plataforma, "título", "categorías", estado)
+            INSERT INTO videos (telefono_creador, "ID de video", plataforma, titulo, "categorías", estado)
             VALUES (%s, %s, %s, %s, %s, 'aprobado')
-            ON CONFLICT ("ID de vídeo", plataforma) DO NOTHING
+            ON CONFLICT ("ID de video", plataforma) DO NOTHING
         """, (
             video['telefono_creador'], 
             video['video_id'],
