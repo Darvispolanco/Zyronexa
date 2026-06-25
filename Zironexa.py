@@ -770,6 +770,7 @@ def logout():
     return redirect(url_for("index"))
     
 @app.route("/videos")
+def @app.route("/videos")
 def videos():
     if "usuario" not in session:
         return redirect(url_for('index', next='videos'))
@@ -779,19 +780,19 @@ def videos():
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("""
         SELECT 
-            v."identificacion" as id, 
+            v."identificación" as id, 
             v."ID de video" as video_id, 
             v.plataforma, 
             v.titulo, 
             v.telefono_creador, 
-            v."categorías" as categoria, 
+            v.categorias as categoria, 
             u.nombre
         FROM videos v
         JOIN usuarios u ON v.telefono_creador = u.telefono
         WHERE v.estado = 'aprobado' 
-        AND LOWER(v."categorías") = %s
+        AND LOWER(v.categorias) = %s
         AND v."ID de video" IS NOT NULL
-        ORDER BY v."identificacion" DESC LIMIT 20
+        ORDER BY v."identificación" DESC LIMIT 20
     """, (categoria,))
     
     videos = cursor.fetchall()
