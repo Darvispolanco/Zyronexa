@@ -296,7 +296,7 @@
                 </div>
             </div>
             <div class="stat-card">
-                <h3>GANANCIAS TOTALES</h3>
+                <h3>RENDIMIENTO TOTAL</h3> <!-- CAMBIO 1 -->
                 <div class="value">C${{ usuario.total_generado }}</div>
             </div>
             <div class="stat-card">
@@ -311,41 +311,41 @@
 
         {% if usuario.producto_activo > 0 %}
         <div class="producto-activo">
-            <h3>✓ Producto Activo: {{ planes[usuario.producto_activo].nombre }}</h3>
+            <h3>✓ Capital Asignado: {{ planes[usuario.producto_activo].nombre }}</h3> <!-- CAMBIO 2 -->
             <p><strong>Valor:</strong> C${{ usuario.valor_producto }}</p>
-            <p><strong>Ganancia Diaria:</strong> C${{ usuario.ganancia_diaria }}</p>
+            <p><strong>Proyección Mensual:</strong> C${{ usuario.ganancia_diaria }}</p> <!-- CAMBIO 3 -->
             <p><strong>Total Generado:</strong> C${{ usuario.total_generado }}</p>
-            <p><strong>Última recompensa:</strong> {{ usuario.ultima_recompensa or 'Nunca' }}</p>
+            <p><strong>Último registro:</strong> {{ usuario.ultima_recompensa or 'Nunca' }}</p> <!-- CAMBIO 4 -->
         </div>
         {% endif %}
 
         <div class="acciones-section">
             <h2 class="section-title">Acciones Rápidas</h2>
             {% if usuario.producto_activo > 0 %}
-            <button class="btn btn-recompensa" onclick="reclamarRecompensa()">🎁 Reclamar Recompensa Diaria</button>
+            <button class="btn btn-recompensa" onclick="reclamarRecompensa()">📊 Registrar Rendimiento Mensual</button> <!-- CAMBIO 5 -->
             {% endif %}
             <button class="btn btn-retirar" onclick="abrirModalRetiro()">💸 Solicitar Retiro - Solo saldo real</button>
             <button class="btn btn-depositar" onclick="abrirModalDeposito()">💳 Depositar con Tarjeta</button>
         </div>
 
         <div class="productos-section">
-            <h2 class="section-title">Planes de Inversión - Sin límite de tiempo</h2>
+            <h2 class="section-title">Capital Interno - Solo Socios</h2> <!-- CAMBIO 6 -->
             <div class="productos-grid">
                 {% for pid, plan in planes.items() %}
                 <div class="producto-card {% if usuario.producto_activo == pid %}activo{% endif %}">
                     {% if pid >= 9 %}<div class="badge-vip">{% if pid == 10 %}ELITE{% else %}RECOMENDADO{% endif %}</div>{% endif %}
                     <h4>{{ plan.nombre }}</h4>
                     <div class="precio">C${{ "{:,}".format(plan.precio) }}</div>
-                    <div class="ganancia">Gana C${{ "{:,}".format(plan.ganancia_diaria) }}/día</div>
-                    <div class="porcentaje">{{ plan.porcentaje }}% diario</div>
+                    <div class="ganancia">Proyección C${{ "{:,}".format(plan.ganancia_diaria) }}/mes</div> <!-- CAMBIO 7 -->
+                    <div class="porcentaje">{{ plan.porcentaje }}% mensual interno</div> <!-- CAMBIO 8 -->
                     {% if usuario.producto_activo == 0 %}
-                    <button class="btn" onclick="comprarProducto({{ plan.precio }}, {{ plan.ganancia_diaria }})">Activar</button>
+                    <button class="btn" onclick="comprarProducto({{ plan.precio }}, {{ plan.ganancia_diaria }})">Asignar Capital</button> <!-- CAMBIO 9 -->
                     {% elif usuario.producto_activo == pid %}
-                    <button class="btn" disabled>Activo</button>
+                    <button class="btn" disabled>Asignado</button> <!-- CAMBIO 10 -->
                     {% elif usuario.valor_producto >= plan.precio %}
-                    <button class="btn" disabled>Plan inferior</button>
+                    <button class="btn" disabled>Capital inferior</button> <!-- CAMBIO 11 -->
                     {% else %}
-                    <button class="btn" onclick="comprarProducto({{ plan.precio }}, {{ plan.ganancia_diaria }})">Mejorar Plan</button>
+                    <button class="btn" onclick="comprarProducto({{ plan.precio }}, {{ plan.ganancia_diaria }})">Ajustar Capital</button> <!-- CAMBIO 12 -->
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -483,7 +483,7 @@
         }
 
         async function comprarProducto(precio, ganancia_diaria) {
-            if (!confirm(`¿Confirmas la compra del plan por C$${precio}?`)) return;
+            if (!confirm(`¿Confirmas la asignación de capital por C$${precio}?`)) return; // CAMBIO 13
 
             try {
                 const response = await fetch('/comprar_plan', {
@@ -502,7 +502,7 @@
                     mostrarAlerta(data.error, 'error');
                 }
             } catch (error) {
-                mostrarAlerta('Error al procesar la compra', 'error');
+                mostrarAlerta('Error al procesar la asignación', 'error'); // CAMBIO 14
             }
         }
 
