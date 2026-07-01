@@ -15,6 +15,8 @@ import pandas as pd
 from io import BytesIO
 import requests  # <- AGREGA ESTA LÍNEA
 from dotenv import load_dotenv
+from binance.client import Client
+from binance.exceptions import BinanceAPIException
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "clave_secreta_123")
@@ -30,8 +32,12 @@ STRIPE_ACCOUNT_ID = os.getenv("STRIPE_ACCOUNT_ID")
 PROPIETARIO_TELEFONO = "84907210"
 PASSWORD_PROPIETARIO = os.getenv("PASSWORD_PROPIETARIO", "123456")
 TIPO_CAMBIO = 36
-LIMITE_DIARIO_BAMPRO = 29000
+MIN_RETIRO_CORDOBAS = 360
 
+client = Client(
+    api_key=os.getenv("BINANCE_API_KEY"),
+    api_secret=os.getenv("BINANCE_SECRET_KEY")
+)
 PLANES = {
     1: {"nombre": "Plan Free", "precio": 500, "ganancia_diaria": 20, "porcentaje": 4.0},
     2: {"nombre": "Plan Básico", "precio": 1500, "ganancia_diaria": 67, "porcentaje": 4.5},
@@ -315,107 +321,50 @@ def deposito_exitoso():
 def deposito_cancelado():
     return render_template("deposito_cancelado.html")
 
-@app.route("/retirar", methods=["POST"])
-def retirar():
+@app.route("/retirar_btc", methods=["POST"])
+def retirar_btc():
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
-    
+
     data = request.json
-    monto_solicitado = int(data.get("monto") or 0)
-    
-    if monto_solicitado <= 0:
-        return jsonify({"error": "Monto inválido"}), 400  # <-- línea 334, debe ir indentada
-    
-    metodo = data.get("metodo")
-    banco_destino = data.get("banco", "").strip()
-    nombre_titular = data.get("nombre_titular", "").strip()
+    monto_cordobas = int(data.get("monto") or 0)
+    wallet_btc = data.get("wallet", "").strip()
+
+    if monto_cordobas < MIN_RETIRO_CORDOBAS:
+        return jsonify({"error": f"Minimo C${MIN_RETIRO_CORDOBAS}"}), 400
+    if not wallet_btc:
+        return jsonify({"error": "Wallet BTC requerida"}), 400
+
     telefono = session["usuario"]["telefono"]
-    
-    if monto_solicitado < 360:
-        return jsonify({"error": "Monto mínimo de retiro: C$360"}), 400
-    if not nombre_titular:
-        return jsonify({"error": "Nombre del titular requerido"}), 400
-    if not banco_destino:
-        return jsonify({"error": "Banco/Billetera destino requerido"}), 400
-    
-    datos_retiro = {}
-    if metodo == "tarjeta":
-        numero_tarjeta = data.get("numero_tarjeta", "").replace(" ", "")
-        if len(numero_tarjeta) < 16:
-            return jsonify({"error": "Número de tarjeta inválido"}), 400
-        datos_retiro = {"metodo": "tarjeta", "tarjeta": numero_tarjeta, "banco": banco_destino, "titular": nombre_titular}
-    elif metodo == "billetera":
-        celular_billetera = data.get("celular", "").strip()
-        if not re.match(r'^\d{8}$', celular_billetera):
-            return jsonify({"error": "Celular de billetera inválido"}), 400
-        datos_retiro = {"metodo": "billetera", "celular": celular_billetera, "billetera": banco_destino, "titular": nombre_titular}
-    elif metodo == "cuenta":
-        numero_cuenta = data.get("numero_cuenta", "").strip()
-        if len(numero_cuenta) < 8:
-            return jsonify({"error": "Número de cuenta inválido"}), 400
-        datos_retiro = {"metodo": "cuenta", "cuenta": numero_cuenta, "banco": banco_destino, "titular": nombre_titular}
-    else:
-        return jsonify({"error": "Método de retiro no válido"}), 400
-    
     conexion = conectar_db()
     cursor = conexion.cursor(cursor_factory=RealDictCursor)
     cursor.execute("SELECT saldo_real FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
     usuario = cursor.fetchone()
-    
-    if monto_solicitado > usuario["saldo_real"]:
-        cursor.close()
-        conexion.close()
-        return jsonify({"error": "Solo puedes retirar saldo real. El bono no es retirable"}), 400
-    
-    comision = int(monto_solicitado * 0.10)
-    monto_neto = monto_solicitado - comision
-    datos_retiro["monto_neto"] = monto_neto
-    datos_retiro["comision"] = comision
-    datos_retiro["monto_solicitado"] = monto_solicitado
-    
-    cursor.execute("""
-        SELECT COALESCE(SUM((datos_retiro::json->>'monto_neto')::int), 0) as total_hoy
-        FROM historial WHERE tipo='retiro' AND estado='pagado' AND DATE(fecha_pago) = CURRENT_DATE
-    """)
-    total_hoy = cursor.fetchone()['total_hoy'] or 0
-    
-    if total_hoy + monto_neto > LIMITE_DIARIO_BAMPRO:
-        cursor.close()
-        conexion.close()
-        return jsonify({"error": "Límite diario alcanzado. Intenta mañana."}), 400
-    
-    cursor.execute("""
-        SELECT COUNT(*) as retiros_hoy FROM historial
-        WHERE telefono=%s AND tipo='retiro' AND DATE(fecha) = CURRENT_DATE
-    """, (telefono,))
-    
-    if cursor.fetchone()['retiros_hoy'] > 0:
-        cursor.close()
-        conexion.close()
-        return jsonify({"error": "Solo 1 retiro por día permitido"}), 400
-    
+
+    if monto_cordobas > usuario["saldo_real"]:
+        cursor.close(); conexion.close()
+        return jsonify({"error": "Saldo insuficiente"}), 400
+
     try:
-        cursor.execute("""
-            UPDATE usuarios SET saldo_real = saldo_real - %s, total_retirado = total_retirado + %s
-            WHERE id = %s
-        """, (monto_solicitado, monto_solicitado, session["usuario"]["id"]))
-        
-        descripcion = f'Retiro {metodo} a {banco_destino}'
-        cursor.execute("""
-            INSERT INTO historial (telefono, tipo, monto, descripcion, estado, datos_retiro)
-            VALUES (%s, 'retiro', %s, %s, 'pendiente', %s)
-        """, (telefono, monto_solicitado, descripcion, json.dumps(datos_retiro)))
-        
+        usdt_amount = round(monto_cordobas / TIPO_CAMBIO, 2)
+        order = client.order_market_buy(symbol='BTCUSDT', quoteOrderQty=usdt_amount)
+        btc_amount = float(order['executedQty'])
+
+        cursor.execute("UPDATE usuarios SET saldo_real = saldo_real - %s WHERE id = %s", (monto_cordobas, session["usuario"]["id"]))
+        cursor.execute("INSERT INTO historial (telefono, tipo, monto, descripcion, estado) VALUES (%s, 'retiro_btc', %s, %s, 'completado')",
+                       (telefono, monto_cordobas, f'Compra {btc_amount} BTC a wallet {wallet_btc[:8]}...'))
         conexion.commit()
-        cursor.execute("SELECT saldo_real FROM usuarios WHERE id = %s", (session["usuario"]["id"],))
-        session["usuario"]["saldo_real"] = cursor.fetchone()["saldo_real"]
-        return jsonify({"success": True, "message": f"Solicitud creada. Recibirás C${monto_neto} en 1-7 días hábiles"})
-    except Exception as e:
+
+        # OJO: Sin IP fija y sin 'Retiros' marcado, esto no corre
+        # client.withdraw(coin='BTC', address=wallet_btc, amount=btc_amount)
+
+        return jsonify({"success": True, "btc": btc_amount, "msg": "BTC comprado. Retira manual desde Binance."})
+
+    except BinanceAPIException as e:
         conexion.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Binance: {e.message}"}), 500
     finally:
-        cursor.close()
-        conexion.close()
+        cursor.close(); conexion.close()
 
 @app.route("/comprar_plan", methods=["POST"])
 def comprar_plan():
@@ -1001,5 +950,13 @@ def rechazar_video(id):
     conexion.close()
     return jsonify({"success": True})
     
+@app.route("/test_binance")
+def test_binance():
+    try:
+        account = client.get_account()
+        usdt = [b for b in account['balances'] if b['asset'] == 'USDT'][0]
+        return jsonify({"ok": True, "USDT_disponible": usdt['free']})
+    except BinanceAPIException as e:
+        return jsonify({"ok": False, "error": e.message}), 500
 if __name__ == "__main__":
     app.run(debug=True)
